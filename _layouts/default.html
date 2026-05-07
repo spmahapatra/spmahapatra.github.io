@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title | default: site.title }}</title>
+  <style>
+    :root {
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --accent-mid: #bfdbfe;
+      --border: #e1e4e8;
+      --muted: #57606a;
+      --bg-subtle: #f6f8fa;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 820px;
+      margin: 2.5rem auto;
+      padding: 0 1.25rem;
+      line-height: 1.7;
+      color: #24292e;
+      background: #fff;
+    }
+    h1, h2, h3 { line-height: 1.3; margin-top: 2rem; }
+    h1 {
+      font-size: 1.9rem;
+      color: #0f172a;
+      border-bottom: 3px solid var(--accent);
+      padding-bottom: 0.4rem;
+    }
+    h2 {
+      font-size: 1.4rem;
+      color: #1e3a5f;
+      border-left: 4px solid var(--accent);
+      padding-left: 0.75rem;
+      margin-left: -0.75rem;
+    }
+    h3 { font-size: 1.1rem; color: #1e3a5f; }
+    a { color: var(--accent); }
+    a:hover { color: #1d4ed8; }
+    pre {
+      position: relative;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-size: 0.875em;
+    }
+    pre code { background: none; padding: 0; font-size: 1em; color: #e2e8f0; }
+    code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.875em;
+      background: var(--accent-light);
+      color: #1e40af;
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.72rem;
+      font-family: system-ui, sans-serif;
+      background: #334155;
+      color: #94a3b8;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    pre:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { background: #475569; color: #e2e8f0; }
+    .copy-btn.copied { background: #14532d; color: #bbf7d0; }
+    blockquote {
+      border-left: 4px solid var(--accent);
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      color: var(--muted);
+      background: var(--accent-light);
+      border-radius: 0 4px 4px 0;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    td, th { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: var(--accent-light); color: #1e3a5f; font-weight: 600; }
+    tr:nth-child(even) td { background: #f8faff; }
+    img { max-width: 100%; border-radius: 4px; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  </style>
+</head>
+<body>
+  <article>
+    {{ content }}
+  </article>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"
+          integrity="sha512-7O5pXpc0oCRSz46C5o5bGXIBPa+rS9FHQlByg8Q3kxSKFhQjJCmHMJKZNBx7OtTuST2UgFl6+pLH7MMK2JGQ=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    document.querySelectorAll('pre').forEach(function(pre) {
+      var btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.textContent = 'Copy';
+      pre.style.position = 'relative';
+      pre.appendChild(btn);
+    });
+
+    var clipboard = new ClipboardJS('.copy-btn', {
+      target: function(trigger) {
+        return trigger.parentElement.querySelector('code') || trigger.parentElement;
+      }
+    });
+
+    clipboard.on('success', function(e) {
+      e.trigger.textContent = 'Copied!';
+      e.trigger.classList.add('copied');
+      setTimeout(function() {
+        e.trigger.textContent = 'Copy';
+        e.trigger.classList.remove('copied');
+      }, 2000);
+      e.clearSelection();
+    });
+  </script>
+</body>
+</html>
