@@ -1,14 +1,22 @@
 ---
-title: "Installing Debian on WSL2 in Windows 11"
-slug: "install-debian-wsl2-windows-11"
-description: "Set up a Debian WSL2 environment on Windows 11 with systemd, backup/restore, and advanced config in under 15 minutes."
-tags: [wsl2, debian, windows, devops]
-status: ready
-platforms: [devto, medium, github]
+description: Set up a Debian WSL2 environment on Windows 11 with systemd, backup/restore,
+  and advanced config in under 15 minutes.
+platforms:
+- devto
+- medium
+- github
 published_at:
-  devto: null
-  medium: null
+  devto: https://dev.to/spmahapatra/how-to-set-up-wsl2-on-windows-11-53oi
   github: null
+  medium: null
+slug: install-debian-wsl2-windows-11
+status: published
+tags:
+- wsl2
+- debian
+- windows
+- devops
+title: Installing Debian on WSL2 in Windows 11
 ---
 
 <!-- VOICE CHECKLIST — delete before publishing

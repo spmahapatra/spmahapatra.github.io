@@ -1,14 +1,22 @@
 ---
-title: "Install Docker Engine on Debian"
-slug: "install-docker-engine-on-debian"
-description: "Install Docker Engine from Docker's official Debian repository, verify the daemon, and configure non-root access safely."
-tags: [docker, debian, containers, linux]
-status: ready
-platforms: [devto, medium, github]
+description: Install Docker Engine from Docker's official Debian repository, verify
+  the daemon, and configure non-root access safely.
+platforms:
+- devto
+- medium
+- github
 published_at:
-  devto: null
-  medium: null
+  devto: https://dev.to/spmahapatra/install-docker-engine-on-debian-4dga
   github: null
+  medium: null
+slug: install-docker-engine-on-debian
+status: published
+tags:
+- docker
+- debian
+- containers
+- linux
+title: Install Docker Engine on Debian
 ---
 
 # Install Docker Engine on Debian

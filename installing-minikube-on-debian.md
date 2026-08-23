@@ -1,14 +1,22 @@
 ---
-title: "Installing Minikube on Debian"
-slug: "installing-minikube-on-debian"
-description: "Install Minikube with Docker on Debian, create a resource-aware local Kubernetes cluster, and verify it with a smoke test."
-tags: [kubernetes, minikube, debian, docker]
-status: ready
-platforms: [devto, medium, github]
+description: Install Minikube with Docker on Debian, create a resource-aware local
+  Kubernetes cluster, and verify it with a smoke test.
+platforms:
+- devto
+- medium
+- github
 published_at:
-  devto: null
-  medium: null
+  devto: https://dev.to/spmahapatra/installing-minikube-on-debian-1aj4
   github: null
+  medium: null
+slug: installing-minikube-on-debian
+status: published
+tags:
+- kubernetes
+- minikube
+- debian
+- docker
+title: Installing Minikube on Debian
 ---
 
 # Installing Minikube on Debian
