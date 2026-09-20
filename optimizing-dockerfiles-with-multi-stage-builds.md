@@ -1,5 +1,5 @@
 ---
-title: "Part 1.5: Optimizing Dockerfiles with Multi-Stage Builds"
+title: "Part 2: Optimizing Dockerfiles with Multi-Stage Builds"
 slug: "optimizing-dockerfiles-with-multi-stage-builds"
 description: "Learn how to use Docker multi-stage builds to shrink your image sizes, speed up CI/CD pipelines, and improve your container security posture."
 tags: ["docker", "devops", "tutorial", "performance"]
@@ -11,12 +11,14 @@ published_at:
   github: null
 ---
 
-# Part 1.5: Optimizing Dockerfiles with Multi-Stage Builds
+# Part 2: Optimizing Dockerfiles with Multi-Stage Builds
 
 ## Key Takeaways
 
 **Platform engineers:** Reduce base image sizes by 80% to 95% while enforcing zero-toolchain runtime environments across build pipelines.
+
 **SREs on-call:** Eliminate `KubeletHasDiskPressure` node evictions and shorten deployment image pull times from minutes to seconds during autoscaling events.
+
 **First-timers:** Start by separating your build-time SDKs from runtime binaries using named `FROM` statements before tuning BuildKit caching mounts.
 
 ---
