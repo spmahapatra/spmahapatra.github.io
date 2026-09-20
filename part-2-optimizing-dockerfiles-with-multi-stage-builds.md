@@ -1,6 +1,6 @@
 ---
 title: "Part 2: Optimizing Dockerfiles with Multi-Stage Builds"
-slug: "optimizing-dockerfiles-with-multi-stage-builds"
+slug: "part-2-optimizing-dockerfiles-with-multi-stage-builds"
 description: "Learn how to use Docker multi-stage builds to shrink your image sizes, speed up CI/CD pipelines, and improve your container security posture."
 tags: ["docker", "devops", "tutorial", "performance"]
 status: draft
