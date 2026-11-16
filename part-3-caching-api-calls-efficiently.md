@@ -1,14 +1,21 @@
 ---
-title: "Part 3: Building the App & Caching for Data Latency"
-slug: "part-3-caching-api-calls-efficiently"
-description: "How our Flask app works and how we use Redis to solve upstream latency."
-tags: [flask, redis, caching, sre]
-status: published
-platforms: [devto, medium, github]
+description: How our Flask app works and how we use Redis to solve upstream latency.
+platforms:
+- devto
+- medium
+- github
 published_at:
-  devto: null
-  medium: null
+  devto: https://dev.to/spmahapatra/part-3-building-the-app-caching-for-data-latency-19n0
   github: null
+  medium: null
+slug: part-3-caching-api-calls-efficiently
+status: published
+tags:
+- flask
+- redis
+- caching
+- sre
+title: 'Part 3: Building the App & Caching for Data Latency'
 ---
 
 # Part 3: Building the App & Caching for Data Latency
@@ -208,4 +215,3 @@ You can build a backdoor into your middleware. Look for a specific header like `
 
 ### Can I deploy this test app to Kubernetes?
 Kubernetes manifests and Helm chart packaging are scheduled for **Part 5** of this series. For now, run and test the application locally using Docker Compose (`docker compose up -d`).
-
