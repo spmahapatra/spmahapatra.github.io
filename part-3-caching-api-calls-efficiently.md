@@ -5,7 +5,7 @@ platforms:
 - medium
 - github
 published_at:
-  devto: https://dev.to/spmahapatra/part-3-building-the-app-caching-for-data-latency-19n0
+  devto: https://dev.to/spmahapatra/part-3-building-the-app-caching-for-data-latency-474i
   github: null
   medium: null
 slug: part-3-caching-api-calls-efficiently
@@ -21,6 +21,8 @@ title: 'Part 3: Building the App & Caching for Data Latency'
 # Part 3: Building the App & Caching for Data Latency
 
 *Navigation: ← [Part 2: Optimizing Dockerfiles with Multi-Stage Builds](./part-2-optimizing-dockerfiles-with-multi-stage-builds.md) | [Part 4: Full-Cycle CI/CD — From Local Hooks to AWS ECR](../drafts/part-4-full-cycle-cicd.md) →*
+
+> 📦 **Companion Repository:** Complete source code, Dockerfiles, and Compose configurations are available on GitHub: [spmahapatra/rick-morty-api-helm](https://github.com/spmahapatra/rick-morty-api-helm).
 
 ## Key Takeaways
 
@@ -99,7 +101,7 @@ The new mental model is a layered check:
 
 ## Walkthrough: Implementing the Cache Detector
 
-If you look at [`src/cache/detection.py`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/src/cache/detection.py) in our repository, you will see how we intercept requests before they hit our business logic. 
+If you look at [`src/cache/detection.py`](https://github.com/spmahapatra/rick-morty-api-helm/blob/master/src/cache/detection.py) in our repository, you will see how we intercept requests before they hit our business logic. 
 
 ### 1. Generating Deterministic Cache Keys
 
@@ -158,7 +160,7 @@ This application is designed as a drop-in reference architecture. If you need a 
 Here is exactly how to deploy it, query it, and validate the caching mechanism locally.
 
 ### 1. Start the infrastructure
-Clone the repository and spin up the Flask application alongside the Redis cache:
+Clone the companion repository ([spmahapatra/rick-morty-api-helm](https://github.com/spmahapatra/rick-morty-api-helm)) and spin up the Flask application alongside the Redis cache:
 ```bash
 git clone https://github.com/spmahapatra/rick-morty-api-helm
 cd rick-morty-api-helm
