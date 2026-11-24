@@ -1,6 +1,8 @@
 title: spmahapatra
 description: Technical deep-dives for DevOps and platform engineers
 highlighter: rouge
+exclude:
+  - samples
 
 defaults:
   - scope:
