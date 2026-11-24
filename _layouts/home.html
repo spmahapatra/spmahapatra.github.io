@@ -3,81 +3,482 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ site.title }}</title>
+  <title>SPMAHAPATRA(9) — {{ site.title | default: "spmahapatra" }}</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --accent: #2563eb;
-      --accent-light: #eff6ff;
-      --accent-mid: #bfdbfe;
-      --border: #e1e4e8;
-      --muted: #57606a;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --bg: #faf8f2;
+      --surface: #f2efe6;
+      --surface-alt: #e7e3d6;
+      --text: #22201d;
+      --muted: #6e6a63;
+      --rule: #22201d;
+      --rule-light: #dcd8ca;
+      --link: #0f4c81;
+      --flag: #991b1b;
     }
-    *, *::before, *::after { box-sizing: border-box; }
+    body.dark-theme {
+      --bg: #151718;
+      --surface: #1c1f21;
+      --surface-alt: #25292c;
+      --text: #e5e2dc;
+      --muted: #8e8a82;
+      --rule: #d5c4a1;
+      --rule-light: #2e3235;
+      --link: #7daea3;
+      --flag: #e78a4e;
+    }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      max-width: 820px;
-      margin: 2.5rem auto;
-      padding: 0 1.25rem;
-      line-height: 1.7;
-      color: #24292e;
-      background: #fff;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.65;
+      padding: 2rem 1.5rem 5rem;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
-      color: #fff;
-      margin: -2.5rem -1.25rem 2.5rem;
-      padding: 2.5rem 1.25rem 2rem;
+    .man-container {
+      max-width: 980px;
+      margin: 0 auto;
     }
-    header h1 { margin: 0 0 0.4rem; font-size: 1.8rem; color: #fff; }
-    header p { margin: 0; color: #93c5fd; font-size: 0.95rem; }
-    .article-list { list-style: none; padding: 0; margin: 0; }
-    .article-list li {
-      border-bottom: 1px solid var(--border);
-      padding: 1.5rem 0;
-      transition: background 0.1s;
+    .man-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 2px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      padding: 0.45rem 0;
+      margin-bottom: 1.75rem;
+      font-weight: 700;
+      font-size: 0.86rem;
+      letter-spacing: 0.03em;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
-    .article-list li:last-child { border-bottom: none; }
-    .article-list h2 { margin: 0 0 0.4rem; font-size: 1.2rem; }
-    .article-list h2 a {
-      text-decoration: none;
-      color: #1e3a5f;
+    .man-banner-center {
+      text-transform: uppercase;
+      color: var(--muted);
       font-weight: 600;
     }
-    .article-list h2 a:hover { color: var(--accent); text-decoration: underline; }
-    .article-list p { margin: 0 0 0.6rem; color: var(--muted); }
-    .tags { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-    .tag {
-      font-size: 0.72rem;
+    .theme-btn {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--rule-light);
+      padding: 0.15rem 0.55rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .theme-btn:hover {
+      background: var(--text);
+      color: var(--bg);
+    }
+    .man-sec {
+      margin-bottom: 2rem;
+    }
+    .man-sec-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--rule-light);
+      padding-bottom: 0.25rem;
+      margin-bottom: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .sec-anchor {
+      color: var(--muted);
+      text-decoration: none;
+      margin-left: 0.35rem;
+      font-weight: 400;
+      opacity: 0.6;
+    }
+    .man-sec-title:hover .sec-anchor {
+      opacity: 1;
+      color: var(--link);
+    }
+    .sec-meta {
+      font-size: 0.75rem;
+      font-weight: 400;
+      text-transform: none;
+      color: var(--muted);
+    }
+    .man-body {
+      padding-left: 3.5ch;
+    }
+    @media (max-width: 680px) {
+      .man-body { padding-left: 1ch; }
+    }
+    .synopsis-grid {
+      background: var(--surface);
+      border: 1px solid var(--rule-light);
+      border-left: 3px solid var(--rule);
+      padding: 0.9rem 1.15rem;
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      row-gap: 0.5rem;
+      column-gap: 1rem;
+      font-size: 0.85rem;
+    }
+    @media (max-width: 640px) {
+      .synopsis-grid { grid-template-columns: 1fr; }
+    }
+    .syn-flag {
+      color: var(--flag);
+      font-weight: 700;
+    }
+    .syn-links a {
+      color: var(--link);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-weight: 700;
+      margin-right: 1.1rem;
+    }
+    .chip {
+      display: inline-block;
+      background: var(--surface-alt);
+      border: 1px solid var(--rule-light);
+      padding: 0.05rem 0.45rem;
+      font-size: 0.76rem;
+      margin: 0.1rem 0.2rem 0.1rem 0;
+    }
+    .search-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      background: var(--surface);
+      border: 1px solid var(--rule-light);
+      padding: 0.5rem 0.8rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.8rem;
+    }
+    .search-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 220px;
+    }
+    .search-input {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--rule-light);
+      padding: 0.25rem 0.55rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      width: 100%;
+      max-width: 300px;
+    }
+    .search-input:focus {
+      outline: 1px solid var(--rule);
+    }
+    .filter-chips {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .f-chip {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--rule-light);
       padding: 0.15rem 0.5rem;
-      background: var(--accent-light);
-      color: var(--accent);
-      border: 1px solid var(--accent-mid);
-      border-radius: 12px;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      cursor: pointer;
+    }
+    .f-chip.active, .f-chip:hover {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+      font-weight: 700;
+    }
+    .man-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .man-row {
+      border-bottom: 1px dashed var(--rule-light);
+    }
+    .man-row:hover {
+      background: var(--surface);
+    }
+    .man-row td {
+      padding: 0.7rem 0.4rem;
+      vertical-align: top;
+    }
+    .col-cmd {
+      width: 280px;
+      white-space: nowrap;
+      padding-right: 1rem !important;
+    }
+    @media (max-width: 680px) {
+      .col-cmd { width: auto; white-space: normal; }
+    }
+    .man-link {
+      color: var(--link);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .man-title {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+    .man-desc {
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.86rem;
+      line-height: 1.45;
+      display: block;
+    }
+    .col-meta {
+      text-align: right;
+      white-space: nowrap;
+      width: 110px;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    .empty-row td {
+      padding: 0.75rem 0.4rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .man-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--rule);
+      border-bottom: 2px solid var(--rule);
+      padding: 0.45rem 0;
+      margin-top: 3.25rem;
+      font-weight: 700;
+      font-size: 0.84rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>{{ site.title }}</h1>
-    <p>{{ site.description }}</p>
-  </header>
+  <script>
+    (function() {
+      try {
+        if (localStorage.getItem('spmahapatra_theme') === 'dark') {
+          document.body.classList.add('dark-theme');
+        }
+      } catch (e) {}
+    })();
+  </script>
 
-  <ul class="article-list">
-    {% assign articles = site.pages
-       | where_exp: "p", "p.name != 'index.md'"
-       | where_exp: "p", "p.title != nil"
-       | sort: "title" %}
-    {% for article in articles %}
-    <li>
-      <h2><a href="{{ article.url | relative_url }}">{{ article.title }}</a></h2>
-      {% if article.description %}<p>{{ article.description }}</p>{% endif %}
-      {% if article.tags and article.tags.size > 0 %}
-      <div class="tags">
-        {% for tag in article.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
+  {% assign articles = site.pages
+     | where_exp: "p", "p.name != 'index.md'"
+     | where_exp: "p", "p.title != nil"
+     | sort: "title" %}
+
+  {% assign all_tags = "" | split: "" %}
+  {% for article in articles %}
+    {% if article.tags %}
+      {% for t in article.tags %}
+        {% unless all_tags contains t %}
+          {% assign all_tags = all_tags | push: t %}
+        {% endunless %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="man-container">
+    <div class="man-banner">
+      <span>SPMAHAPATRA(9)</span>
+      <span class="man-banner-center">{{ site.description | default: "Platform & DevOps Engineering Manual" }}</span>
+      <span>
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle Paper / Dark Mode (Key: t)">Theme [t]</button>
+        &nbsp;SPMAHAPATRA(9)
+      </span>
+    </div>
+
+    <section class="man-sec" id="name">
+      <div class="man-sec-title">
+        <span>NAME <a class="sec-anchor" href="#name">§</a></span>
+        <span class="sec-meta">keys: [/] search &nbsp;[j/k] scroll &nbsp;[t] theme</span>
       </div>
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
+      <div class="man-body">
+        <strong>SP.Mahapatra</strong> &mdash; Production Kubernetes architecture, GitOps delivery pipelines, cloud infrastructure automation, and Linux incident postmortems.
+      </div>
+    </section>
+
+    <section class="man-sec" id="synopsis">
+      <div class="man-sec-title">
+        <span>SYNOPSIS <a class="sec-anchor" href="#synopsis">§</a></span>
+        <span class="sec-meta">operator profile &amp; endpoints</span>
+      </div>
+      <div class="man-body">
+        <div class="synopsis-grid">
+          <div class="syn-flag">--focus</div>
+          <div>Kubernetes platform reliability, Helm chart architecture, ArgoCD GitOps, Terraform IaC, Linux network debugging</div>
+
+          <div class="syn-flag">--domains</div>
+          <div>
+            <span class="chip">kubernetes</span>
+            <span class="chip">helm</span>
+            <span class="chip">argocd</span>
+            <span class="chip">terraform</span>
+            <span class="chip">github-actions</span>
+            <span class="chip">linux-netfilter</span>
+            <span class="chip">sre-observability</span>
+          </div>
+
+          <div class="syn-flag">--endpoints</div>
+          <div class="syn-links">
+            <a href="https://github.com/spmahapatra" target="_blank" rel="noopener">github.com/spmahapatra ↗</a>
+            <a href="https://www.linkedin.com/in/spmahapatra" target="_blank" rel="noopener">linkedin.com/in/spmahapatra ↗</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="search-bar">
+      <div class="search-input-wrap">
+        <span>$ apropos</span>
+        <input id="man-search" class="search-input" type="text" placeholder="Press '/' to filter manuals..." oninput="filterManuals()">
+      </div>
+      <div class="filter-chips">
+        <button class="f-chip active" onclick="setTopic('all', this)">ALL</button>
+        {% for tag in all_tags %}
+        <button class="f-chip" onclick="setTopic('{{ tag | downcase }}', this)">--{{ tag | downcase }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <section class="man-sec" id="section-7">
+      <div class="man-sec-title">
+        <span>SECTION 7 &mdash; SYSTEMS ARCHITECTURE &amp; INCIDENT POSTMORTEMS <a class="sec-anchor" href="#section-7">§</a></span>
+        <span class="sec-meta">section: 7 (deep-dive manuals)</span>
+      </div>
+      <div class="man-body">
+        <table class="man-table">
+          {% assign sec7_count = 0 %}
+          {% for article in articles %}
+            {% assign sec = article.section | default: 7 | plus: 0 %}
+            {% if sec == 7 %}
+              {% assign sec7_count = sec7_count | plus: 1 %}
+              {% assign slug_label = article.slug | default: article.name | remove: ".md" %}
+              {% assign read_mins = article.content | number_of_words | divided_by: 200 | plus: 1 %}
+              <tr class="man-row" data-tags="{{ article.tags | join: ' ' | downcase }}">
+                <td class="col-cmd">
+                  <a class="man-link" href="{{ article.url | relative_url }}">{{ slug_label }}(7)</a>
+                </td>
+                <td>
+                  <a class="man-title" href="{{ article.url | relative_url }}" style="color:inherit;text-decoration:none;">{{ article.title }}</a>
+                  {% if article.description %}<span class="man-desc">{{ article.description }}</span>{% endif %}
+                </td>
+                <td class="col-meta">[{{ read_mins }} min]</td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+          {% if sec7_count == 0 %}
+            <tr class="empty-row"><td colspan="3">No Section 7 architecture manuals published yet.</td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </section>
+
+    <section class="man-sec" id="section-1-5">
+      <div class="man-sec-title">
+        <span>SECTION 1 &amp; 5 &mdash; DEVOPS FOUNDATIONS &amp; OPERATIONAL RUNBOOKS <a class="sec-anchor" href="#section-1-5">§</a></span>
+        <span class="sec-meta">section: 1 | 5 (field guides &amp; runbooks)</span>
+      </div>
+      <div class="man-body">
+        <table class="man-table">
+          {% assign sec15_count = 0 %}
+          {% for article in articles %}
+            {% assign sec = article.section | default: 7 | plus: 0 %}
+            {% if sec == 1 or sec == 5 %}
+              {% assign sec15_count = sec15_count | plus: 1 %}
+              {% assign slug_label = article.slug | default: article.name | remove: ".md" %}
+              {% assign read_mins = article.content | number_of_words | divided_by: 200 | plus: 1 %}
+              <tr class="man-row" data-tags="{{ article.tags | join: ' ' | downcase }}">
+                <td class="col-cmd">
+                  <a class="man-link" href="{{ article.url | relative_url }}">{{ slug_label }}({{ sec }})</a>
+                </td>
+                <td>
+                  <a class="man-title" href="{{ article.url | relative_url }}" style="color:inherit;text-decoration:none;">{{ article.title }}</a>
+                  {% if article.description %}<span class="man-desc">{{ article.description }}</span>{% endif %}
+                </td>
+                <td class="col-meta">[{{ read_mins }} min]</td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+          {% if sec15_count == 0 %}
+            <tr class="empty-row"><td colspan="3">Foundational Section 1 &amp; 5 operational runbooks in progress.</td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </section>
+
+    <div class="man-footer">
+      <span>spmahapatra.github.io</span>
+      <span>{{ site.title | default: "spmahapatra" }}</span>
+      <span>SPMAHAPATRA(9)</span>
+    </div>
+  </div>
+
+  <script>
+    var currentTopic = 'all';
+
+    function toggleTheme() {
+      var isDark = document.body.classList.toggle('dark-theme');
+      try {
+        localStorage.setItem('spmahapatra_theme', isDark ? 'dark' : 'paper');
+      } catch (e) {}
+    }
+
+    function setTopic(topic, btn) {
+      currentTopic = topic;
+      document.querySelectorAll('.f-chip').forEach(function(c) {
+        c.classList.remove('active');
+      });
+      if (btn) btn.classList.add('active');
+      filterManuals();
+    }
+
+    function filterManuals() {
+      var input = document.getElementById('man-search');
+      var q = (input ? input.value : '').toLowerCase();
+      document.querySelectorAll('.man-row').forEach(function(row) {
+        var tags = (row.getAttribute('data-tags') || '').split(/\s+/);
+        var matchTopic = (currentTopic === 'all') || (tags.indexOf(currentTopic) !== -1);
+        var matchText = !q || (row.innerText || '').toLowerCase().indexOf(q) !== -1;
+        row.style.display = (matchTopic && matchText) ? '' : 'none';
+      });
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+        if (e.key === 'Escape') active.blur();
+        return;
+      }
+      if (e.key === '/') {
+        e.preventDefault();
+        var s = document.getElementById('man-search');
+        if (s) s.focus();
+      } else if (e.key === 't' || e.key === 'T') {
+        toggleTheme();
+      } else if (e.key === 'j') {
+        window.scrollBy({ top: 140, behavior: 'smooth' });
+      } else if (e.key === 'k') {
+        window.scrollBy({ top: -140, behavior: 'smooth' });
+      }
+    });
+  </script>
 </body>
 </html>
