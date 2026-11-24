@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 218" width="920" height="218" role="img" aria-label="SPMAHAPATRA(9) — Sibaprasad Mahapatra (Siba) — Senior Cloud, DevOps &amp; SRE Engineer">
   <defs>
     <style>
-      /* Always Warm Paper Theme (Matches https://spmahapatra.github.io/ default Paper palette) */
       .bg { fill: #faf8f2; stroke: #dcd8ca; stroke-width: 1; }
       .surface { fill: #f2efe6; stroke: #dcd8ca; stroke-width: 1; }
       .rule-heavy { stroke: #22201d; stroke-width: 2; }
@@ -22,27 +21,22 @@
 
   <rect class="bg" x="0.5" y="0.5" width="919" height="217" rx="6" />
 
-  <!-- Top Manpage Double-Rule Banner -->
   <line class="rule-heavy" x1="20" y1="16" x2="900" y2="16" />
   <text class="mono-banner" x="22" y="32">SPMAHAPATRA(9)</text>
   <text class="mono-center" x="460" y="32" text-anchor="middle">CLOUD &amp; DEVOPS ENGINEERING MANUAL</text>
   <text class="mono-banner" x="898" y="32" text-anchor="end">SPMAHAPATRA(9)</text>
   <line class="rule-thin" x1="20" y1="40" x2="900" y2="40" />
 
-  <!-- Hero Surface Card -->
   <rect class="surface" x="20" y="52" width="880" height="152" rx="4" />
   <rect class="accent-bar" x="20" y="52" width="5" height="152" rx="2" />
 
-  <!-- Headline & Role -->
   <text x="42" y="83">
     <tspan class="headline">Sibaprasad Mahapatra (Siba)</tspan>
     <tspan class="role">  —  Senior Cloud, DevOps &amp; SRE Engineer</tspan>
   </text>
 
-  <!-- Concrete Value Line -->
   <text class="sub" x="42" y="108">Architecting high-availability AWS &amp; Kubernetes infrastructure, zero-downtime cloud migrations, automated CI/CD &amp; observability</text>
 
-  <!-- Manpage Flags Synopsis Strip (--experience on full line 1, --certs on full line 2) -->
   <text x="42" y="134">
     <tspan class="flag">--experience </tspan>
     <tspan class="meta">18+ yrs Enterprise IT  •  Cloud Architecture &amp; Migration  •  CI/CD Automation  •  SRE &amp; Platform Security</tspan>
@@ -52,7 +46,6 @@
     <tspan class="meta">AWS Certified Solutions Architect (SAA)  •  Red Hat Certified Engineer (RHCE)  •  VMware Certified Professional (VCP)</tspan>
   </text>
 
-  <!-- Bottom Blog Command Pill -->
   <rect class="pill-bg" x="42" y="170" width="490" height="22" rx="4" />
   <circle class="ok-dot" cx="54" cy="181" r="3.5" />
   <text class="pill-txt" x="65" y="185">$ man spmahapatra  →  https://spmahapatra.github.io  (Blog &amp; Runbooks)</text>
