@@ -1,14 +1,15 @@
 ---
-title: "Part 1 Dockerising and Standardising Compose"
+title: "Part 1: Dockerising and Standardising Compose"
 slug: "part-1-dockerising-and-standardising-compose"
+date: "2026-09-20"
 description: "Learn to standardize Docker Compose setups, properly split environment data from architectural config, and stop cross-environment pollution in your codebase."
 tags: ["docker", "devops", "engineering", "tutorial"]
-status: draft
+status: published
 platforms: [devto, medium, github]
 published_at:
   devto: null
   medium: null
-  github: null
+  github: https://spmahapatra.github.io/part-1-dockerising-and-standardising-compose
 ---
 
 # Part 1: Dockerising and Standardising Compose

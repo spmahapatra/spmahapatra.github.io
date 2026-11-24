@@ -1,14 +1,15 @@
 ---
 title: "Part 2: Optimizing Dockerfiles with Multi-Stage Builds"
 slug: "part-2-optimizing-dockerfiles-with-multi-stage-builds"
+date: "2026-09-20"
 description: "Learn how to use Docker multi-stage builds to shrink your image sizes, speed up CI/CD pipelines, and improve your container security posture."
 tags: ["docker", "devops", "tutorial", "performance"]
-status: draft
+status: published
 platforms: [devto, medium, github]
 published_at:
   devto: null
   medium: null
-  github: null
+  github: https://spmahapatra.github.io/part-2-optimizing-dockerfiles-with-multi-stage-builds
 ---
 
 # Part 2: Optimizing Dockerfiles with Multi-Stage Builds

@@ -1,4 +1,5 @@
 ---
+date: '2026-08-24'
 description: Install Minikube with Docker on Debian, create a resource-aware local
   Kubernetes cluster, and verify it with a smoke test.
 platforms:
@@ -7,7 +8,7 @@ platforms:
 - github
 published_at:
   devto: https://dev.to/spmahapatra/installing-minikube-on-debian-1aj4
-  github: null
+  github: https://spmahapatra.github.io/installing-minikube-on-debian
   medium: null
 slug: installing-minikube-on-debian
 status: published

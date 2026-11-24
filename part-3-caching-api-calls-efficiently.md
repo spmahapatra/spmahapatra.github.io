@@ -1,4 +1,5 @@
 ---
+date: '2026-11-16'
 description: How our Flask app works and how we use Redis to solve upstream latency.
 platforms:
 - devto
@@ -6,7 +7,7 @@ platforms:
 - github
 published_at:
   devto: https://dev.to/spmahapatra/part-3-building-the-app-caching-for-data-latency-474i
-  github: null
+  github: https://spmahapatra.github.io/part-3-caching-api-calls-efficiently
   medium: null
 slug: part-3-caching-api-calls-efficiently
 status: published

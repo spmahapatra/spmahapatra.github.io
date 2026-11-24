@@ -1,4 +1,5 @@
 ---
+date: '2026-05-04'
 description: Set up a Debian WSL2 environment on Windows 11 with systemd, backup/restore,
   and advanced config in under 15 minutes.
 platforms:
@@ -7,7 +8,7 @@ platforms:
 - github
 published_at:
   devto: https://dev.to/spmahapatra/how-to-set-up-wsl2-on-windows-11-53oi
-  github: null
+  github: https://spmahapatra.github.io/install-debian-wsl2-windows-11
   medium: null
 slug: install-debian-wsl2-windows-11
 status: published
@@ -18,13 +19,6 @@ tags:
 - devops
 title: Installing Debian on WSL2 in Windows 11
 ---
-
-<!-- VOICE CHECKLIST — delete before publishing
-     Description: no "production-grade / comprehensive / robust / powerful" — say what they'll have instead.
-     Em dashes: max 3-4 per article. Replace extras with commas or periods.
-     Repeated phrases: if a phrase appears in two sections, cut one.
-     Summary sentences: delete any sentence that just restates the one before it.
-     Opinion: add one sentence of honest preference, frustration, or opinion. AI can't fake this. -->
 
 # Installing Debian on WSL2 in Windows 11
 

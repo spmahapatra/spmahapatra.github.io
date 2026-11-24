@@ -1,4 +1,5 @@
 ---
+date: '2026-08-23'
 description: Install Docker Engine from Docker's official Debian repository, verify
   the daemon, and configure non-root access safely.
 platforms:
@@ -7,7 +8,7 @@ platforms:
 - github
 published_at:
   devto: https://dev.to/spmahapatra/install-docker-engine-on-debian-4dga
-  github: null
+  github: https://spmahapatra.github.io/install-docker-engine-on-debian
   medium: null
 slug: install-docker-engine-on-debian
 status: published
