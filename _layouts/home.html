@@ -361,6 +361,12 @@
       outline: 2px solid var(--link);
       outline-offset: 2px;
     }
+    @media (min-width: 681px) {
+      .search-bar { flex-wrap: nowrap; }
+      .search-input-wrap { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+      .search-input { max-width: 200px; }
+      .filter-chips { flex-wrap: nowrap; white-space: nowrap; }
+    }
     .ls-pager {
       display: flex;
       justify-content: space-between;
@@ -546,7 +552,7 @@
           </div>
           <div class="filter-chips">
             <button class="f-chip active" onclick="setTopic('all', this)">ALL</button>
-            {% for tag in all_tags %}
+            {% for tag in all_tags limit: 4 %}
             <button class="f-chip" data-topic="{{ tag }}" onclick="setTopic(this.dataset.topic, this)">--{{ tag }}</button>
             {% endfor %}
           </div>
