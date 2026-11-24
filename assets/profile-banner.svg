@@ -1,38 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 218" width="920" height="218" role="img" aria-label="SPMAHAPATRA(9) — Sibaprasad Mahapatra (Siba) — Senior Cloud, DevOps &amp; SRE Engineer">
   <defs>
     <style>
-      .bg { fill: #0d1117; stroke: #30363d; stroke-width: 1; }
-      .surface { fill: #161b22; stroke: #30363d; stroke-width: 1; }
-      .card-box { fill: #0d1117; stroke: #30363d; stroke-width: 1; }
-      .rule-heavy { stroke: #d5c4a1; stroke-width: 2; }
-      .rule-thin { stroke: #30363d; stroke-width: 1; }
-      .accent-bar { fill: #e78a4e; }
-      .mono-banner { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12.5px; font-weight: 700; fill: #e6edf3; letter-spacing: 0.04em; }
-      .mono-center { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; font-weight: 600; fill: #8b949e; letter-spacing: 0.06em; }
-      .headline { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #e6edf3; }
-      .role { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 15px; font-weight: 600; fill: #e78a4e; }
-      .sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13.5px; fill: #c9d1d9; }
-      .flag { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; font-weight: 700; fill: #e78a4e; }
-      .meta { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; fill: #8b949e; }
-      .pill-bg { fill: #21262d; stroke: #30363d; stroke-width: 1; rx: 4; }
-      .pill-txt { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11.5px; font-weight: 600; fill: #58a6ff; }
-      .ok-dot { fill: #3fb950; }
-
-      @media (prefers-color-scheme: light) {
-        .bg { fill: #ffffff; stroke: #d0d7de; }
-        .surface { fill: #f6f8fa; stroke: #d0d7de; }
-        .card-box { fill: #ffffff; stroke: #d0d7de; }
-        .rule-heavy { stroke: #1f2328; }
-        .rule-thin { stroke: #d0d7de; }
-        .accent-bar { fill: #991b1b; }
-        .mono-banner, .headline { fill: #1f2328; }
-        .mono-center, .meta { fill: #656d76; }
-        .role, .flag { fill: #991b1b; }
-        .sub { fill: #424a53; }
-        .pill-bg { fill: #eaeef2; stroke: #d0d7de; }
-        .pill-txt { fill: #0969da; }
-        .ok-dot { fill: #1a7f37; }
-      }
+      /* Always Warm Paper Theme (Matches https://spmahapatra.github.io/ default Paper palette) */
+      .bg { fill: #faf8f2; stroke: #dcd8ca; stroke-width: 1; }
+      .surface { fill: #f2efe6; stroke: #dcd8ca; stroke-width: 1; }
+      .rule-heavy { stroke: #22201d; stroke-width: 2; }
+      .rule-thin { stroke: #22201d; stroke-width: 1; }
+      .accent-bar { fill: #991b1b; }
+      .mono-banner { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12.5px; font-weight: 700; fill: #22201d; letter-spacing: 0.04em; }
+      .mono-center { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; font-weight: 600; fill: #6e6a63; letter-spacing: 0.06em; }
+      .headline { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #22201d; }
+      .role { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 15px; font-weight: 600; fill: #991b1b; }
+      .sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13.5px; fill: #3d3a35; }
+      .flag { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; font-weight: 700; fill: #991b1b; }
+      .meta { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12px; fill: #6e6a63; }
+      .pill-bg { fill: #e7e3d6; stroke: #dcd8ca; stroke-width: 1; rx: 4; }
+      .pill-txt { font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11.5px; font-weight: 600; fill: #0f4c81; }
+      .ok-dot { fill: #166534; }
     </style>
   </defs>
 
@@ -55,7 +39,7 @@
     <tspan class="role">  —  Senior Cloud, DevOps &amp; SRE Engineer</tspan>
   </text>
 
-  <!-- Concrete Value Line (Replaces generic buzzwords with actual resume focus) -->
+  <!-- Concrete Value Line -->
   <text class="sub" x="42" y="108">Architecting high-availability AWS &amp; Kubernetes infrastructure, zero-downtime cloud migrations, automated CI/CD &amp; observability</text>
 
   <!-- Manpage Flags Synopsis Strip (--experience on full line 1, --certs on full line 2) -->
