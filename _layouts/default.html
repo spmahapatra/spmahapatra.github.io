@@ -467,35 +467,6 @@
       border-top: 1px dashed var(--main-border-color);
       font-size: 0.82rem;
     }
-    .further-reading {
-      margin-top: 2.25rem;
-      padding-top: 1.35rem;
-      border-top: 1px solid var(--main-border-color);
-    }
-    .further-reading h3 {
-      font-size: 1.15rem;
-      margin-bottom: 0.9rem;
-    }
-    .further-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 0.9rem;
-    }
-    .further-card {
-      display: block;
-      border: 2px solid #28253D;
-      border-radius: 10px;
-      box-shadow: 3px 3px 0 rgba(40, 37, 61, 0.14);
-      padding: 0.9rem 1.05rem;
-      background: var(--highlight-bg-color);
-      text-decoration: none !important;
-      border-bottom: 2px solid #28253D !important;
-      color: var(--text-color) !important;
-    }
-    .further-card:hover { border-color: var(--toc-highlight) !important; }
-    .further-card time { font-size: 0.75rem; color: var(--text-muted-color); display: block; }
-    .further-card h4 { font-size: 0.98rem; margin: 0.25rem 0 0.4rem; color: var(--heading-color); }
-    .further-card p { font-size: 0.82rem; color: var(--text-muted-color); margin: 0 !important; line-height: 1.45; }
     .nav-card {
       border: 2px solid #28253D;
       border-radius: 10px;
@@ -666,24 +637,6 @@
                 <span>Share: <a href="https://www.linkedin.com/in/spmahapatra" target="_blank" rel="noopener">LinkedIn</a> • <a href="#" onclick="navigator.clipboard&&navigator.clipboard.writeText(window.location.href);return false;">Copy Link</a></span>
               </div>
             </div>
-
-            {% assign related_cards = site.pages | where: "topic", topic_id %}
-            {% if related_cards.size > 1 %}
-            <aside class="further-reading" aria-label="Further Reading">
-              <h3>Further Reading</h3>
-              <div class="further-grid">
-                {% for rp in related_cards limit: 4 %}
-                  {% if rp.title and rp.url != page.url %}
-                  <a class="further-card" href="{{ rp.url | relative_url }}">
-                    {% if rp.date %}<time>{{ rp.date }}</time>{% endif %}
-                    <h4>{{ rp.title }}</h4>
-                    {% if rp.description %}<p>{{ rp.description | truncate: 115 }}</p>{% endif %}
-                  </a>
-                  {% endif %}
-                {% endfor %}
-              </div>
-            </aside>
-            {% endif %}
 
             {% if page.prev_slug or page.next_slug %}
             <div class="post-tail-nav">
