@@ -8,19 +8,19 @@ platforms:
 - github
 published_at:
   devto: https://dev.to/spmahapatra/part-3-building-the-app-caching-for-data-latency-474i
-  github: https://spmahapatra.github.io/part-3-caching-api-calls-efficiently
+  github: https://spmahapatra.github.io/caching-api-calls-efficiently
   medium: null
-slug: part-3-caching-api-calls-efficiently
+slug: caching-api-calls-efficiently
 status: published
 section: 7
 topic: containers
-prev_slug: part-2-optimizing-dockerfiles-with-multi-stage-builds
+prev_slug: optimizing-dockerfiles-with-multi-stage-builds
 next_slug: ""
 tested_on:
 - Python 3.11 / Flask 3.0
 - Redis 7.2 Alpine
 - Docker Compose v2.27
-cover_image: https://spmahapatra.github.io/recordings/part-3-caching-api-calls-efficiently/architecture.svg
+cover_image: https://spmahapatra.github.io/recordings/caching-api-calls-efficiently/architecture.svg
 tags:
 - flask
 - redis
@@ -45,7 +45,7 @@ This blueprint implements the deterministic **Redis CacheMiddleware** from the c
 
 Every incoming `GET /api/v1/characters` request passes through `CacheMiddleware` before hitting the upstream HTTP client. On a cache hit, Flask returns the cached JSON payload from Redis in ~2ms with `X-Cache: HIT`. On a cache miss (or if Redis is down), Flask fetches from the upstream Rick & Morty API (~320ms), hydrates Redis with a bounded TTL (`300s`), and returns `X-Cache: MISS`:
 
-![Redis API Caching for Data Latency in Flask Architecture Overview](https://spmahapatra.github.io/recordings/part-3-caching-api-calls-efficiently/architecture.svg)
+![Redis API Caching for Data Latency in Flask Architecture Overview](https://spmahapatra.github.io/recordings/caching-api-calls-efficiently/architecture.svg)
 
 ## Project Structure & Prerequisites
 

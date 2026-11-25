@@ -1,6 +1,6 @@
 ---
 title: "Standardising Docker Compose V2 Across Environments"
-slug: "part-1-dockerising-and-standardising-compose"
+slug: "dockerising-and-standardising-compose"
 date: "2026-09-20"
 description: "Standardize Docker Compose V2 setups, split local overrides from base production topology, and block staging database bleed with fail-fast variable gates."
 tags: ["docker", "devops", "containers", "tutorial"]
@@ -8,17 +8,17 @@ status: published
 section: 7
 topic: containers
 prev_slug: install-docker-engine-on-debian
-next_slug: part-2-optimizing-dockerfiles-with-multi-stage-builds
+next_slug: optimizing-dockerfiles-with-multi-stage-builds
 tested_on:
 - Docker Engine 26.1
 - Compose v2.27
 - Debian 12
-cover_image: https://spmahapatra.github.io/recordings/part-1-dockerising-and-standardising-compose/architecture.svg
+cover_image: https://spmahapatra.github.io/recordings/dockerising-and-standardising-compose/architecture.svg
 platforms: [devto, medium, github]
 published_at:
   devto: null
   medium: null
-  github: https://spmahapatra.github.io/part-1-dockerising-and-standardising-compose
+  github: https://spmahapatra.github.io/dockerising-and-standardising-compose
 ---
 
 # Standardising Docker Compose V2 Across Environments
@@ -37,7 +37,7 @@ This blueprint standardises multi-container applications around the **Compose V2
 
 When you run `docker compose up`, Compose V2 resolves configuration across three repository files (`docker-compose.yml`, `docker-compose.override.yml`, and `.env`) through the Compose Spec schema and variable interpolation gate before issuing a single container creation call to the Docker Engine API:
 
-![Standardising Docker Compose V2 Architecture Overview](https://spmahapatra.github.io/recordings/part-1-dockerising-and-standardising-compose/architecture.svg)
+![Standardising Docker Compose V2 Architecture Overview](https://spmahapatra.github.io/recordings/dockerising-and-standardising-compose/architecture.svg)
 
 ## Project Structure & Prerequisites
 

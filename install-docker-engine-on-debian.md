@@ -15,7 +15,7 @@ status: published
 section: 7
 topic: containers
 prev_slug: install-debian-wsl2-windows-11
-next_slug: part-1-dockerising-and-standardising-compose
+next_slug: dockerising-and-standardising-compose
 tested_on:
 - Debian 12 (Bookworm)
 - Docker Engine 26.1

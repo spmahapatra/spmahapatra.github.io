@@ -1,24 +1,24 @@
 ---
 title: "Optimizing Dockerfiles with Multi-Stage Builds"
-slug: "part-2-optimizing-dockerfiles-with-multi-stage-builds"
+slug: "optimizing-dockerfiles-with-multi-stage-builds"
 date: "2026-09-20"
 description: "Shrink container images from 1.85 GB to 28 MB using Docker multi-stage builds, BuildKit cache mounts, and non-root Distroless runtimes."
 tags: ["docker", "devops", "containers", "performance"]
 status: published
 section: 7
 topic: containers
-prev_slug: part-1-dockerising-and-standardising-compose
-next_slug: part-3-caching-api-calls-efficiently
+prev_slug: dockerising-and-standardising-compose
+next_slug: caching-api-calls-efficiently
 tested_on:
 - Docker Engine 26.1
 - BuildKit v0.14
 - Go 1.22 / Distroless Debian 12
-cover_image: https://spmahapatra.github.io/recordings/part-2-optimizing-dockerfiles-with-multi-stage-builds/architecture.svg
+cover_image: https://spmahapatra.github.io/recordings/optimizing-dockerfiles-with-multi-stage-builds/architecture.svg
 platforms: [devto, medium, github]
 published_at:
   devto: null
   medium: null
-  github: https://spmahapatra.github.io/part-2-optimizing-dockerfiles-with-multi-stage-builds
+  github: https://spmahapatra.github.io/optimizing-dockerfiles-with-multi-stage-builds
 ---
 
 # Optimizing Dockerfiles with Multi-Stage Builds
@@ -37,7 +37,7 @@ This blueprint restructures a legacy 1.85 GB single-stage build into a **28.4 MB
 
 Container images consist of immutable read-only layers; deleting compilers in a later `RUN` instruction still leaves those megabytes inside earlier layers. Multi-stage builds solve this by running compilation inside a throwaway `builder` stage (with persistent BuildKit cache mounts) and copying only the stripped static binary and CA certificates into a clean runtime base:
 
-![Optimizing Dockerfiles with Multi-Stage Builds Architecture Overview](https://spmahapatra.github.io/recordings/part-2-optimizing-dockerfiles-with-multi-stage-builds/architecture.svg)
+![Optimizing Dockerfiles with Multi-Stage Builds Architecture Overview](https://spmahapatra.github.io/recordings/optimizing-dockerfiles-with-multi-stage-builds/architecture.svg)
 
 ## Project Structure & Prerequisites
 
