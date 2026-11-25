@@ -1,10 +1,19 @@
 ---
-title: "Part 1: Dockerising and Standardising Compose"
+title: "Standardising Docker Compose V2 Across Environments"
 slug: "part-1-dockerising-and-standardising-compose"
 date: "2026-09-20"
-description: "Learn to standardize Docker Compose setups, properly split environment data from architectural config, and stop cross-environment pollution in your codebase."
-tags: ["docker", "devops", "engineering", "tutorial"]
+description: "Standardize Docker Compose V2 setups, split local overrides from base production topology, and block staging database bleed with fail-fast variable gates."
+tags: ["docker", "devops", "containers", "tutorial"]
 status: published
+section: 7
+topic: containers
+prev_slug: install-docker-engine-on-debian
+next_slug: part-2-optimizing-dockerfiles-with-multi-stage-builds
+tested_on:
+- Docker Engine 26.1
+- Compose v2.27
+- Debian 12
+cover_image: https://spmahapatra.github.io/recordings/part-1-dockerising-and-standardising-compose/architecture.svg
 platforms: [devto, medium, github]
 published_at:
   devto: null
@@ -12,111 +21,69 @@ published_at:
   github: https://spmahapatra.github.io/part-1-dockerising-and-standardising-compose
 ---
 
-# Part 1: Dockerising and Standardising Compose
+# Standardising Docker Compose V2 Across Environments
 
-*Navigation: [Part 2: Caching API Calls Efficiently](./part-2-caching-api-calls-efficiently.md) →*
+Local Docker Compose setups drift fast when every repository invents its own conventions. Without an explicit top-level `name:` declaration and strict variable checks, two projects cloned into folders named `app/` will overwrite each other's persistent database volumes, and a leftover shell export like `DATABASE_HOST=db-staging.internal.net` can silently route local integration tests into a live staging database over VPN.
 
-## Welcome and Series Overview
+This blueprint standardises multi-container applications around the **Compose V2 Specification** used in the companion repository [`spmahapatra/rick-morty-api-helm`](https://github.com/spmahapatra/rick-morty-api-helm), removing deprecated `version:` headers, splitting production service definitions from local developer bind-mounts, and enforcing fail-fast `${VAR:?error}` environment gates before any container starts.
 
-Welcome to the team! If you are a new developer joining us, this series is your definitive onboarding guide. We are taking a raw application and scaling it to enterprise standards.
+> [!INFO]
+> **What This Blueprint Delivers:**
+> - **Deterministic Project Namespaces:** Top-level `name:` replaces deprecated `version: '3.8'` headers so container, network, and volume prefixes never collide across folders.
+> - **Two-File Topology Split:** Production service topology stays locked in `docker-compose.yml` while local source bind-mounts live in `docker-compose.override.yml`.
+> - **Fail-Fast Variable Gate:** `${DATABASE_URL:?error}` halts `docker compose up` immediately if required `.env` variables are unset.
 
-Here is our published journey:
-1. **Docker Compose Standardisation** (This post) — Enforcing strict local environments.
-2. **App Creation & Caching** (See Part 2) — Building the Flask app and using Redis to solve data latency.
-3. **Enterprise ELK Logging** (See Part 3) — Structured JSON logs for observability.
-4. **Full-Cycle CI/CD** (See Part 4) — Shifting CI left to reduce costs.
+## Architecture Overview
 
----
+When you run `docker compose up`, Compose V2 resolves configuration across three repository files (`docker-compose.yml`, `docker-compose.override.yml`, and `.env`) through the Compose Spec schema and variable interpolation gate before issuing a single container creation call to the Docker Engine API:
 
-## Key Takeaways
+![Standardising Docker Compose V2 Architecture Overview](https://spmahapatra.github.io/recordings/part-1-dockerising-and-standardising-compose/architecture.svg)
 
-**Platform engineers:** Standardise Compose setups across your repositories. Use the Compose Specification schema. Remove the `version` key and add a `name` at the top level to stop cross-repo namespace clashes.
+## Project Structure & Prerequisites
 
-**SREs on-call:** Stop silent cross-environment pollution and database corruption. This usually happens when local containers inherit shell exports instead of strict `.env` fallbacks.
+- **Docker Engine 24.0+:** Verify daemon health with `docker version --format '{{.Server.Version}}'`.
+- **Docker Compose V2 (v2.20+):** Verify the Go plugin with `docker compose version` (Compose V1 `docker-compose` reached End-of-Life in July 2023).
+- **Companion Reference Repository:** [`spmahapatra/rick-morty-api-helm`](https://github.com/spmahapatra/rick-morty-api-helm).
 
-**First-timers:** Start by splitting your configuration into two distinct layers: Data vs. Architecture.
-- **Data (`.env`)**: Injects raw strings and secrets (e.g. `DB_PASSWORD`). Keep this developer-managed and *never* commit it.
-- **Architecture (`docker-compose.override.yml`)**: Overrides base container physics for local dev (mapping ports to your host, mounting live `./src` folders). Keep this repo-managed and always commit it to version control.
-Keep the base [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml) strictly for production-ready topologies.
-
----
-
-## What Is Dockerising and Standardising Compose?
-
-We often see teams using ad-hoc [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml) files. Standardising means we stop doing this. We replace them with a unified format using Compose V2. Instead of relying on custom wrapper scripts or raw `docker run` commands, we agree on a strict structure for our services, volumes, and networks.
-
-As of July 2023, Docker Compose V1 (written in Python) reached End-of-Life (EOL). We must now rely on Compose V2 (written in Go), which natively reads the Compose Specification. **Under this specification, the top-level `version` is deprecated, and project identity is set by the root `name` field, not the folder name.** If you skip this, you will face non-deterministic container naming and silent variable overrides across developer machines and CI/CD agents.
-
----
-
-## The Mental Model
-
-When a developer runs `docker compose up`, it doesn't just run a simple script. It parses and resolves your configuration through four layers.
-
-1. **Repository Configuration** — `.env` files, shell exports (what you control)
-2. **Compose Engine** — YAML parsing, variable expansion, inheritance (your local CLI)
-3. **Docker Engine API** — Translates YAML into API calls (your host daemon)
-4. **Host Kernel** — cgroup and network allocation (host OS)
-
-If two developers run `docker compose up` on the same commit but get different results, where did it break? Not at the Engine or Kernel. It broke at the Repository Configuration layer. Unvalidated environment variables mutated the setup before a single API call reached the daemon.
-
----
-
-## The Incident
-
-At 14:22 UTC, I received a critical page: `CRITICAL - DB_STAGING_MUTATION_ALERT`. Staging database records were mutating, causing broken foreign keys.
-
-I checked the staging database audit logs immediately.
-
-```
-2023-11-14 14:21:03 UTC [18402]: [3-1] user=app_dev,db=staging_db LOG:  STATEMENT:  TRUNCATE TABLE users CASCADE;
+```plaintext
+# file: Directory Layout
+rick-morty-api-helm/
+├── docker-compose.yml           # Locked production service topology + top-level name:
+├── docker-compose.override.yml  # Local developer bind-mounts & debug ports (auto-merged)
+├── .env.example                 # Committed template pointing to 127.0.0.1 dummy credentials
+└── .env                         # Developer-local secrets (gitignored, never committed)
 ```
 
-A local developer was running integration tests, thinking they were using a local database. Instead, their local app connected to our staging database over the corporate VPN and ran a destructive migration. 
+## Locking the Project Namespace (`docker-compose.yml`)
 
-Why did this happen? It was a variable cascade bleed. The developer's project relied on an implicit `.env` file without a fallback for `DATABASE_HOST`. Because the developer had previously exported `DATABASE_HOST=db-staging.internal.net` in their shell session, the local `docker compose up` silently inherited it.
-
-The trade-off is clear: fixing this requires tight environment file rules and explicit boundaries for every local stack. I spent two days clearing doubts with developers who insisted "it worked fine on my machine", before I finally set up a CI linter to reject unstandardised Compose files.
-
----
-
-## Prerequisites
-
-- **Docker Engine**: Version 24.0.0 or higher. Precheck your host version using `docker version --format '{{.Server.Version}}'`.
-- **Docker Compose**: Version 2.20.0 or higher (`docker compose version`).
-- **Assumed Knowledge**: Familiarity with container networking and Linux processes.
-
----
-
-## Walkthrough
-
-### 1. Precheck legacy configurations and remove deprecated attributes
-
-Inspect the repository for legacy Docker Compose formats. Older files use top-level `version` keys (like `version: '3.8'`). This ignores modern features.
-
-Run this command to find all YAML files with the deprecated `version` attribute:
+In Compose V1, top-level `version: '3.8'` headers pinned schema versions while project identity defaulted to the current directory name. Under the Compose V2 Specification, `version:` is deprecated and triggers runtime warnings. Audit your repository for legacy `version:` lines, remove them, and declare an explicit top-level `name:` key at line 1 of `docker-compose.yml`:
 
 ```bash
 find . -maxdepth 3 -type f \( -name "docker-compose*.yml" -o -name "docker-compose*.yaml" \) \
-  -exec grep -Hn "^version:" {} +
+  -exec grep -Hn "^version:" {} + || true
 ```
 
-Remove the `version` field from all files. Replace it with an explicit `name` attribute in your primary file. This ensures container and volume names are properly scoped.
+Define the base [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml) with `name: core-platform-services` so every container, bridge network, and volume is deterministically prefixed regardless of where a developer clones the repository:
 
 ```yaml
-# Standardised Compose Specification Format
+# file: docker-compose.yml
 name: core-platform-services
 
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: registry.internal.net/billing/app:v2.4.1
+    restart: unless-stopped
     ports:
       - "${HOST_PORT:-8080}:8080"
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - DATABASE_URL=${DATABASE_URL:?Doubts: DATABASE_URL must be explicitly provided}
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL must be explicitly set in .env}
+    networks:
+      - internal_net
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     networks:
       - internal_net
 
@@ -125,157 +92,95 @@ networks:
     driver: bridge
 ```
 
-**Verification:**
+> [!WARNING]
+> **Caveats & Impact:** Changing the top-level `name:` creates a new volume and network prefix (`core-platform-services_*`). Always run `docker compose down --remove-orphans` before renaming a project so containers using the old folder-based prefix are stopped cleanly.
 
-Validate that Compose parses the file without throwing schema errors:
+## Isolating Local Developer Mounts (`docker-compose.override.yml`)
 
-```bash
-docker compose config --quiet && echo "Schema is valid."
-```
-
----
-
-### 2. Establish a multi-file split
-
-To prevent local settings from leaking into staging, separate the base topology from environment overrides. Use [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml) for shared definitions and [`docker-compose.override.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.override.yml) for developer-specific local mounts.
-
-Create the base [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml):
+Never pollute `docker-compose.yml` with host source bind-mounts (`volumes: - .:/usr/src/app`) or local debug targets. Keep local developer physics in [`docker-compose.override.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.override.yml). Running `docker compose up` locally merges both files automatically, while CI/CD and staging jobs can target the locked production topology explicitly via `docker compose -f docker-compose.yml up -d`:
 
 ```yaml
-name: billing-system
-
+# file: docker-compose.override.yml
 services:
-  app:
-    image: registry.internal.net/billing/app:v2.4.1
-    restart: unless-stopped
-    environment:
-      - APP_PORT=3000
-    networks:
-      - app_bus
-```
-
-Create the local development override file [`docker-compose.override.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.override.yml). Docker Compose automatically merges this file when you run `docker compose up`:
-
-```yaml
-services:
-  app:
+  api:
     build:
       context: .
+      dockerfile: Dockerfile
       target: dev
     ports:
-      - "3000:3000"
+      - "5000:5000"
     volumes:
       - .:/usr/src/app
 ```
 
-**Verification:**
-
-Verify how Compose merges these files locally:
+Verify that Compose V2 merges the base service definition with the local override mounts by inspecting the rendered canonical configuration:
 
 ```bash
-docker compose config
+DATABASE_URL="postgresql://local_user:local_pass@127.0.0.1:5432/app_db" \
+REDIS_PASSWORD="local_dummy_redis_pass" \
+docker compose config | head -n 22
 ```
 
-Verify that the output contains both the base service definition and the local volume mounts.
-
----
-
-### 3. Implement strict environment variable validation
-
-Unset shell variables can cause dangerous fallbacks. Use standard Compose syntax to enforce required variables.
-
-* Syntax `${VAR:-default}` uses `default` if `VAR` is empty.
-* Syntax `${VAR:?error_message}` stops execution if `VAR` is empty.
-
-First, create a sample [`.env.example`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/.env.example) file that developers can copy to `.env`. This file must point to local dummy credentials, ensuring they never connect to staging by mistake.
-
-```bash
-# .env.example
-# Copy this file to .env before running docker compose up
-
-# Application Environment
-NODE_ENV=development
-
-# Database Connection (Hardcoded to local dummy container, NOT staging)
-DATABASE_HOST=127.0.0.1
-DATABASE_PORT=5432
-DATABASE_USER=local_dummy_user
-DATABASE_PASSWORD=local_dummy_pass
-```
-
-Next, enforce required variable checks inside your services block in [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml):
-
-```yaml
+```plaintext
+name: core-platform-services
 services:
-  worker:
-    image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD:?Fatal error: REDIS_PASSWORD is missing.}
+  api:
+    build:
+      context: /home/localadmin/projects/rick-morty-api-helm
+      dockerfile: Dockerfile
+      target: dev
+    environment:
+      DATABASE_URL: postgresql://local_user:local_pass@127.0.0.1:5432/app_db
+      NODE_ENV: development
+    image: registry.internal.net/billing/app:v2.4.1
+    networks:
+      internal_net: null
+    ports:
+      - mode: ingress
+        target: 8080
+        published: "8080"
+        protocol: tcp
+      - mode: ingress
+        target: 5000
+        published: "5000"
+        protocol: tcp
 ```
 
-**Verification:**
+## Enforcing Fail-Fast Variable Gates (`.env.example`)
 
-Test that Compose throws an explicit error when executing without required variables:
+At 14:22 UTC during a past staging incident (`CRITICAL - DB_STAGING_MUTATION_ALERT`), a developer ran local destructive integration tests (`TRUNCATE TABLE users CASCADE;`) that silently connected to `db-staging.internal.net` over corporate VPN because their shell session still held an old exported variable and `docker-compose.yml` lacked a fail-fast `.env` contract.
+
+Prevent cross-environment variable bleed by committing a sterile [`.env.example`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/.env.example) hardcoded to `127.0.0.1` dummy credentials and enforcing `${VAR:?error}` syntax on every sensitive connection string:
 
 ```bash
-env -i docker compose config
+# file: .env.example
+# Copy to .env before running docker compose up: cp .env.example .env
+NODE_ENV=development
+HOST_PORT=8080
+DATABASE_URL=postgresql://local_dummy_user:local_dummy_pass@127.0.0.1:5432/local_dev_db
+REDIS_PASSWORD=local_dummy_redis_pass
 ```
 
----
-
-## Real-World Example
-
-You can see a complete, working implementation of these standards in our [Rick & Morty API repository](https://github.com/spmahapatra/rick-morty-api-helm). 
-Check out the split between [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml), [`docker-compose.override.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.override.yml), and [`.env.example`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/.env.example) to see how we safely expose local ports without compromising the base production configuration.
-
----
-
-## Debugging & Common Pitfalls
-
-### Silent Environment Variable Overrides
-
-**Symptom:**  
-Services connect to unintended host ports or external services, bypassing `.env` values.
-
-**Root Cause:**  
-Compose resolves variables using this precedence:
-1. Shell variables set in the active terminal
-2. Environment variables set in `.env`
-3. Default values in the [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml)
-
-If a developer exports `PORT=9000` in their shell, Compose will use `9000`, silently ignoring `PORT=3000` inside `.env`.
-
-**Fix:**  
-Clear ambient environment variables before invoking Compose:
+Verify that the fail-fast gate blocks startup immediately when `.env` is missing or when required variables are unset by running `docker compose config` in a stripped environment (`env -i`):
 
 ```bash
-env -i HOME="$HOME" PATH="$PATH" docker compose up -d
+env -i HOME="$HOME" PATH="$PATH" docker compose config --quiet
 ```
 
----
+```plaintext
+error while interpolating services.api.environment.[]: required variable DATABASE_URL is missing a value: DATABASE_URL must be explicitly set in .env
+```
 
-### Volume Namespace Bleed Across Repositories
+> [!TIP]
+> **Sanitized Invocation in Shared Shells:** Active shell `export` variables always override values inside `.env`. When switching between staging maintenance and local testing in the same terminal, launch Compose with `env -i HOME="$HOME" PATH="$PATH" docker compose up -d` so `.env` is the sole variable source.
 
-**Symptom:**  
-Spinning up an application in Repository B overwrites persistent data in database volumes created by Repository A.
+## What This Setup Does Not Do & Troubleshooting
 
-**Root Cause:**  
-Both repositories define generic volume keys like `volumes: db_data:` without setting a root `name` attribute. Compose defaults to the current parent directory name. If both projects are inside directories named `app/`, they will share the exact same volume namespace.
+`docker compose config` validates YAML schema structure, file merging, and required variable presence, but it does not block an active shell `export` from taking precedence over a key defined in `.env`, nor does it encrypt secrets stored inside local `.env` files. Use this reference table to resolve common Compose V2 issues:
 
-**Fix:**  
-Explicitly assign a unique top-level `name` in every repository's [`docker-compose.yml`](https://github.com/spmahapatra/rick-morty-api-helm/blob/main/docker-compose.yml).
-
----
-
-## FAQ
-
-### Why should I delete the top-level `version` line?
-
-The `version` field enforced legacy schema constraints (like `'3.8'`). Modern Compose V2 automatically detects capabilities based on the target Docker Engine. Including a `version` string now triggers deprecation warnings and can cause Compose to ignore modern attributes.
-
-### Can I run `docker-compose` (with a hyphen) in modern CI pipelines?
-
-You should not rely on `docker-compose` anymore. The standalone Python binary reached End-of-Life in July 2023. Modern pipelines must use `docker compose` (space separated), which uses the Go-based plugin integrated into the Docker CLI.
-
-### Final Thoughts on Container Architecture
-
-Adopting these standards isn't just about appeasing the platform engineering team—it's about fundamentally improving developer velocity. By separating the environment data from the architectural configuration, we establish a robust contract that prevents the classic "it works on my machine" syndrome. When every developer, CI/CD runner, and production node speaks the exact same container language, you stop firefighting environment pollution and start shipping features. Stick to this discipline, and your infrastructure will scale elegantly alongside your team.
+| Symptom / Error | Root Cause | Fix & Verify |
+|---|---|---|
+| Local container connects to staging host despite `127.0.0.1` in `.env` | Active shell `export DATABASE_URL=...` overrides `.env` file values in Compose variable precedence | Run `env -i HOME="$HOME" PATH="$PATH" docker compose config` to verify `.env` values without ambient shell exports |
+| Repository B overwrites Postgres or Redis volume created by Repository A | Both repositories sit in folders named `app/` and omit the root `name:` key in `docker-compose.yml` | Add a unique top-level `name: <project-slug>` at line 1 of `docker-compose.yml` and verify with `docker volume ls` |
+| CI pipeline fails with `docker-compose: command not found` | Standalone Python Compose V1 binary (`docker-compose`) reached EOL and was removed from modern runners | Replace hyphenated `docker-compose` commands with the Go CLI plugin `docker compose` (`docker compose version`) |
+| `Warning: the attribute 'version' is obsolete, it will be ignored` | Legacy `version: '3.8'` key remains at top of `docker-compose.yml` or `docker-compose.override.yml` | Delete the `version:` line from all Compose files and run `docker compose config --quiet` |

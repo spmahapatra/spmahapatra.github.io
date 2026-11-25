@@ -1,10 +1,19 @@
 ---
-title: "Part 2: Optimizing Dockerfiles with Multi-Stage Builds"
+title: "Optimizing Dockerfiles with Multi-Stage Builds"
 slug: "part-2-optimizing-dockerfiles-with-multi-stage-builds"
 date: "2026-09-20"
-description: "Learn how to use Docker multi-stage builds to shrink your image sizes, speed up CI/CD pipelines, and improve your container security posture."
-tags: ["docker", "devops", "tutorial", "performance"]
+description: "Shrink container images from 1.85 GB to 28 MB using Docker multi-stage builds, BuildKit cache mounts, and non-root Distroless runtimes."
+tags: ["docker", "devops", "containers", "performance"]
 status: published
+section: 7
+topic: containers
+prev_slug: part-1-dockerising-and-standardising-compose
+next_slug: part-3-caching-api-calls-efficiently
+tested_on:
+- Docker Engine 26.1
+- BuildKit v0.14
+- Go 1.22 / Distroless Debian 12
+cover_image: https://spmahapatra.github.io/recordings/part-2-optimizing-dockerfiles-with-multi-stage-builds/architecture.svg
 platforms: [devto, medium, github]
 published_at:
   devto: null
@@ -12,356 +21,149 @@ published_at:
   github: https://spmahapatra.github.io/part-2-optimizing-dockerfiles-with-multi-stage-builds
 ---
 
-# Part 2: Optimizing Dockerfiles with Multi-Stage Builds
+# Optimizing Dockerfiles with Multi-Stage Builds
 
-## Key Takeaways
+Single-stage Dockerfiles routinely ship 1.5 GB+ of compilers, C headers, package managers, and source trees into production just to run a 25 MB binary. During autoscaling events, bloated images stall pod startup in `ContainerCreating` for minutes, exhaust node disk capacity (`KubeletHasDiskPressure`), and leave shells and package managers exposed inside the runtime container.
 
-**Platform engineers:** Reduce base image sizes by 80% to 95% while enforcing zero-toolchain runtime environments across build pipelines.
+This blueprint restructures a legacy 1.85 GB single-stage build into a **28.4 MB non-root Distroless multi-stage Dockerfile**, separating compilation dependencies from the execution image and wiring BuildKit `--mount=type=cache` directories so repeat CI builds finish in under 2 seconds.
 
-**SREs on-call:** Eliminate `KubeletHasDiskPressure` node evictions and shorten deployment image pull times from minutes to seconds during autoscaling events.
+> [!INFO]
+> **What This Blueprint Delivers:**
+> - **98% Image Size Reduction:** Drops runtime footprint from `1.85 GB` (`golang:1.22-bookworm` + toolchain) to `28.4 MB` (`gcr.io/distroless/static-debian12:nonroot`).
+> - **Sub-2-Second Rebuild Cache:** Uses BuildKit `--mount=type=cache` for module and compiler caches without baking cache directories into image layers.
+> - **Zero-Shell Non-Root Hardening:** Runs as UID/GID `65532:65532` with no shell, `apt`, or compiler binaries in the final OCI artifact.
 
-**First-timers:** Start by separating your build-time SDKs from runtime binaries using named `FROM` statements before tuning BuildKit caching mounts.
+## Architecture Overview
 
----
+Container images consist of immutable read-only layers; deleting compilers in a later `RUN` instruction still leaves those megabytes inside earlier layers. Multi-stage builds solve this by running compilation inside a throwaway `builder` stage (with persistent BuildKit cache mounts) and copying only the stripped static binary and CA certificates into a clean runtime base:
 
-## What Is Multi-Stage Docker Builds?
+![Optimizing Dockerfiles with Multi-Stage Builds Architecture Overview](https://spmahapatra.github.io/recordings/part-2-optimizing-dockerfiles-with-multi-stage-builds/architecture.svg)
 
-Multi-stage Docker builds allow you to use multiple `FROM` statements in a single `Dockerfile`. Each `FROM` instruction starts a new build stage with a fresh environment, letting you copy artifacts directly from one stage to another while dropping unnecessary compilers, source files, and temporary tooling.
+## Project Structure & Prerequisites
 
-As of Docker 23.0 and BuildKit v0.11, multi-stage builds execute stages in parallel when dependencies permit, skipping unused stages entirely. Without multi-stage builds, shipping a Go, Rust, or Java application requires either carrying compiler toolchains directly into your execution environment or writing fragile host-level wrapper scripts to clean up files before layer commit.
+- **Docker Engine 23.0+ with BuildKit Enabled:** BuildKit is the default builder in Docker 23.0+; verify with `docker buildx version`.
+- **Static Compilation Targets:** Go (`CGO_ENABLED=0`), Rust, or Python wheels isolated from build-time C compilers.
+- **Companion Reference Repository:** [`spmahapatra/rick-morty-api-helm`](https://github.com/spmahapatra/rick-morty-api-helm).
 
----
-
-## The Mental Model
-
-Why do single-stage Dockerfiles consistently inflate image size and expose unneeded system packages? Container images build as a series of read-only stackable layers. Deleting a tool in a later `RUN` command does not reduce the storage footprint of the finished image; the layer containing that tool remains baked into the image history.
-
-Understanding where image bloat originates requires breaking down the container execution stack into distinct operational boundaries:
-
-1. **Build Toolchain & Compiler Layer** — Compilers, C headers, git binaries, package managers (your build stage configuration).
-2. **Intermediate Artifact Layer** — Compiled binaries, object files, dependency download caches (BuildKit engine / host engine storage).
-3. **Runtime Dependency Layer** — Shared dynamic libraries (`libc`, `musl`), CA certificates, system users (your final stage configuration).
-4. **Container Runtime Engine Layer** — Namespace isolation, cgroups, `overlay2` copy-on-write storage driver execution (host OS kernel, out of your hands).
-
-You control layers 1, 2, and 3. Single-stage images force layers 1, 2, and 3 into the final layer stack. Multi-stage builds decouple layer 1 and layer 2 into throwaway stages, pulling only layer 3 into the final image definition.
-
----
-
-## The Incident
-
-At 03:14 UTC, two nodes in our primary Kubernetes cluster threw `KubeletHasDiskPressure` warnings. Within four minutes, three critical payment-gateway pods were evicted. Autoscaling attempted to launch replacement pods on surviving nodes, but the new pods stalled in `ContainerCreating` for 240 seconds. 
-
-The monitoring dashboard displayed the following event logs across the cluster:
-
-```text
-03:18:12Z node-04 kubelet: WARNING: Disk usage on image filesystem is at 89%
-03:19:01Z node-04 kubelet: ERROR: Failed to pull image "registry.internal/payment/api:v2.1.4": context deadline exceeded
-03:19:05Z node-05 kubelet: INFO: Evicting pod payment-api-7db5c6c644-8x2ql due to disk pressure
+```plaintext
+# file: Directory Layout
+service-repo/
+├── Dockerfile.legacy            # Anti-pattern: single-stage 1.85 GB image with SDK + shell
+├── Dockerfile                   # Multi-stage BuildKit definition -> 28.4 MB Distroless
+├── .dockerignore                # Excludes .git, local caches, and .env from build context
+├── go.mod                       # Dependency manifest copied before source tree
+├── go.sum                       # Cryptographic checksums for deterministic module cache
+└── main.go                      # Application entry point compiled to /build/bin/server
 ```
 
-Why did image pulling take four minutes per node pull? I checked the image manifest in our internal registry and found the `payment/api:v2.1.4` image measured 1.85 GB.
+## Auditing Layer Bloat in Single-Stage Images (`docker history`)
 
-I spent the first hour convinced our private registry proxy was bandwidth-throttled by cloud egress rules. It was not. I inspected the image layers using `docker history` and discovered the build shipped the entire Go SDK, GCC compiler, standard header files, git repository history, and npm cache directly into runtime. 
-
-```text
-CREATED BY                                      SIZE
-/bin/sh -c apt-get update && apt-get install…   642MB
-/bin/sh -c go build -o /app/server .            480MB
-COPY dir:a83b12... in /src                      720MB
-```
-
-Why were we shipping 1.84 GB of build infrastructure to serve a single 22 MB statically compiled binary? 
-
-Honestly, I find Go's default static linking flags annoying because `-ldflags="-w -s"` should be standard in every pipeline template, but engineers keep omitting it. The team had relied on a single-stage `Dockerfile` based on `golang:1.21` without stripping debug symbols or separating the build toolchain from the execution image.
-
----
-
-## Prerequisites
-
-- Docker Engine 20.10.0+ or Docker Desktop 4.0+ with BuildKit enabled (`DOCKER_BUILDKIT=1`).
-- Basic familiarity with Docker CLI flags and container layer concepts.
-- `[VERIFY: docker buildx version]` returns BuildKit engine active.
-
----
-
-## Walkthrough
-
-### 1. Audit image bloat and layer inventory
-
-Before rewriting your build definition, establish a baseline size and inspect which directives introduce unnecessary byte overhead.
+At 03:14 UTC during a production traffic spike, two Kubernetes nodes threw `KubeletHasDiskPressure` warnings (`Disk usage on image filesystem is at 89%`) and evicted payment pods while replacement pods timed out in `ContainerCreating` (`Failed to pull image: context deadline exceeded`). Build the legacy single-stage image and inspect its layer breakdown with `docker history`:
 
 ```bash
-# Build the legacy single-stage image
 docker build -t app:legacy -f Dockerfile.legacy .
-
-# Inspect total size
-docker image ls app:legacy
-
-# Analyze layer breakdown
 docker history app:legacy --format "table {{.ID}}\t{{.Size}}\t{{.CreatedBy}}"
 ```
 
-**What to verify:**
-
-Confirm the total size and identify whether package managers (`apt`, `apk`), compilers (`gcc`, `go`), or source trees account for more than 50% of the total footprint.
-
-```bash
-docker inspect app:legacy --format='{{.Size}}'
+```plaintext
+IMAGE          SIZE      CREATED BY
+d3f2a1b4c5e6   480MB     /bin/sh -c go build -o /app/server .
+8f12c9a04b11   720MB     COPY dir:a83b12... in /src
+3e91a0c7b402   642MB     /bin/sh -c apt-get update && apt-get install -y gcc git ...
 ```
 
-### 2. Isolate compilation dependencies using build stages
+And exclude `.git`, local test artifacts, and `.env` files from the build context first so `COPY . .` never invalidates the layer cache on unrelated file edits or leaks secrets into intermediate layers:
 
-Define a distinct compilation stage using a named `FROM` clause. Allocate all heavy dependencies, header packages, and build scripts exclusively to this phase.
+```gitignore
+# file: .dockerignore
+.git
+.gitignore
+.env
+.env.*
+*.md
+tests/
+tmp/
+```
 
-Create a new `Dockerfile`:
+## Isolating the Builder & BuildKit Cache Mounts (`Dockerfile`)
+
+Create a named `FROM golang:1.22-bookworm AS builder` stage that copies `go.mod` and `go.sum` before the source tree, mounts BuildKit persistent cache directories (`/go/pkg/mod` and `/root/.cache/go-build`), and compiles a stripped static binary (`CGO_ENABLED=0`, `-ldflags="-s -w"`):
 
 ```dockerfile
-# Stage 1: Build workspace
+# file: Dockerfile
+# syntax=docker/dockerfile:1.7
+
+# Stage 1: Throwaway Build & Compilation Workspace
 FROM golang:1.22-bookworm AS builder
 
 WORKDIR /build
 
-# Copy dependency manifests first to leverage layer caching
+# Copy dependency manifests first so source edits do not invalidate module cache
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
-# Copy source code and compile binary
+# Copy application source and compile a stripped static ELF binary
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /build/bin/server .
-```
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" -o /build/bin/server .
 
-**What to verify:**
-
-Verify that building only the intermediate stage succeeds without creating runtime side effects.
-
-```bash
-docker build --target builder -t app:builder-only .
-docker image ls app:builder-only
-```
-
-### 3. Extract minimal binary targets into runtime images
-
-Add a second `FROM` instruction targeting a minimal base image like `debian:bookworm-slim`, `alpine`, or `gcr.io/distroless/static-debian12`. Copy only the compiled binary from the `builder` stage using `COPY --from`.
-
-```dockerfile
-# Stage 1: Build workspace
-FROM golang:1.22-bookworm AS builder
-
-WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /build/bin/server .
-
-# Stage 2: Minimal Execution Runtime
+# Stage 2: Minimal Non-Root Distroless Runtime
 FROM gcr.io/distroless/static-debian12:nonroot
 
 WORKDIR /app
 
-# Copy executable from builder stage
+# Copy only the compiled static executable from the builder stage
 COPY --from=builder /build/bin/server /app/server
 
-# Expose port and configure non-root runtime environment
 EXPOSE 8080
 USER 65532:65532
 
 ENTRYPOINT ["/app/server"]
 ```
 
-**What to verify:**
+> [!TIP]
+> **Targeted Stage Testing:** You can build and test the compilation stage in isolation during CI linting without running the final stage by passing `--target builder`: `docker build --target builder -t app:builder-test .`.
 
-Run the new multi-stage build and compare the final image size against `app:legacy`.
+## Benchmarking Footprint & Rebuild Latency (`docker build`)
+
+Build the multi-stage image with BuildKit enabled, confirm its non-root runtime user (`65532:65532`), and compare its final disk footprint against the legacy single-stage image:
 
 ```bash
-docker build -t app:optimized .
-docker image ls | grep -E "app\s+(legacy|optimized)"
+DOCKER_BUILDKIT=1 docker build -t app:optimized .
+docker inspect app:optimized --format='User={{.Config.User}} Entrypoint={{.Config.Entrypoint}}'  # Expected: User=65532:65532 Entrypoint=[/app/server]
+docker image ls | grep -E "REPOSITORY|app\s+(legacy|optimized)"
 ```
 
-The output must show a dramatic reduction in size (for Go applications, usually dropping from ~1 GB to under 30 MB):
-
-```text
+```plaintext
 REPOSITORY   TAG         IMAGE ID       CREATED          SIZE
 app          legacy      d3f2a1b4c5e6   10 minutes ago   1.85GB
-app          optimized   a1b2c3d4e5f6   2 minutes ago    28.4MB
+app          optimized   a1b2c3d4e5f6   12 seconds ago   28.4MB
 ```
 
-### 4. Optimize BuildKit cache mounts across workflow stages
+> [!WARNING]
+> **Caveats & Impact:** Because `distroless/static-debian12:nonroot` removes `/bin/sh` and `apt`, you cannot debug a running container with `docker exec -it <container> sh`. On Kubernetes 1.23+, attach a temporary diagnostic sidecar with `kubectl debug -it <pod> --image=busybox:1.36 --target=<container>`. To revert to the legacy image or clean up dangling builder cache layers locally, run `docker tag app:legacy app:optimized && docker builder prune -f`.
 
-While multi-stage builds shrink image size, re-downloading package caches on every build slows pipeline execution speed. Use BuildKit `--mount=type=cache` options to persist dependency directories across stages without saving those directories into image layers.
+## Selecting the Right Runtime Base Image Strategy
 
-Modify the `builder` stage in your `Dockerfile`:
+Choose the final `FROM` runtime base according to whether your compiled binary links dynamically against `glibc` or runs as a self-contained static executable:
 
-```dockerfile
-FROM golang:1.22-bookworm AS builder
+| Runtime Base Image | Final Footprint | Dynamic `libc` | Shell / `apt` | Best Fit |
+|---|---|---|---|---|
+| `gcr.io/distroless/static-debian12:nonroot` | ~2–28 MB | No (Static only) | None | Static Go / Rust binaries (`CGO_ENABLED=0`) |
+| `gcr.io/distroless/base-debian12:nonroot` | ~20–45 MB | Yes (`glibc`) | None | C/C++, CGO, or Rust binaries needing `glibc` & OpenSSL |
+| `debian:bookworm-slim` | ~75–140 MB | Yes (`glibc`) | Yes (`bash`, `apt`) | Python (`slim`) or Node.js services needing POSIX shell tools |
+| `scratch` | 0 MB base | No (Static only) | None | Ultra-minimal static binaries (must manually copy CA certs) |
 
-WORKDIR /build
+## What This Setup Does Not Do & Troubleshooting
 
-COPY go.mod go.sum ./
+Multi-stage builds eliminate build-time bloat from the final image, but they do not automatically persist BuildKit cache mounts across temporary CI runners unless you export cache metadata (`--cache-to type=gha` or `type=registry`), nor do they populate root TLS certificates when you use `FROM scratch` instead of `distroless`. Use this troubleshooting table to fix common multi-stage build errors:
 
-# Mount Go module cache and build cache directories
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
-
-COPY . .
-
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /build/bin/server .
-
-FROM gcr.io/distroless/static-debian12:nonroot
-WORKDIR /app
-COPY --from=builder /build/bin/server /app/server
-USER 65532:65532
-ENTRYPOINT ["/app/server"]
-```
-
-**Fast path — Build using BuildKit enabled inline:**
-
-```bash
-DOCKER_BUILDKIT=1 docker build -t app:optimized-cached .
-```
-
-**Manual path — build engine explicit export command if default context fails:**
-
-```bash
-docker buildx build --output type=docker -t app:optimized-cached .
-```
-
-**What to verify:**
-
-Execute two sequential builds and check the time delta on the second run.
-
-```bash
-time docker build -t app:optimized-cached .
-```
-
-The second run should complete in under two seconds due to BuildKit cache target hits.
-
----
-
-## Decision Framework
-
-Selecting the right base image strategy for your final runtime stage introduces specific trade-offs between attack surface, debugging convenience, and POSIX compliance.
-
-| Base Image Strategy | Final Image Footprint | Package Manager Available | Vulnerability Exposure (CVEs) | Debugging Capabilities | Primary Use Case |
-|---|---|---|---|---|---|
-| **Full OS Base** (`debian:bookworm`, `ubuntu:22.04`) | 100 MB - 800 MB | Yes (`apt`) | High (100+ standard packages) | High (shell, curl, gdb present) | Complex legacy applications needing dynamic C libraries |
-| **Minimal OS Base** (`alpine:3.19`) | 5 MB - 15 MB | Yes (`apk`) | Low (fewer system packages) | Moderate (busybox shell present) | Applications requiring POSIX utilities but low disk usage |
-| **Distroless** (`distroless/static-debian12`) | 2 MB - 20 MB | No | Minimal (no shell or package tools) | Low (requires ephemeral debug containers) | Security-critical services with static binaries |
-| **Scratch** (`scratch`) | 0 MB (empty layer) | No | Zero OS-level CVEs | None (no shell or tools) | Purely static binaries (`Go`, `Rust`) with self-contained assets |
-
-Increasing security by stripping out shells (`distroless`/`scratch`) means your operational debugging workflow changes: you cannot `docker exec -it container sh` into a failing instance. You must rely on telemetry, distributed tracing, or ephemeral debug sidecars instead.
-
----
-
-## Command Reference
-
-| Command | Operational Purpose |
-|---|---|
-| `docker build --target <stage_name> -t img .` | Build up to a specific intermediate stage for debugging or testing. |
-| `docker buildx build --cache-from type=gha --cache-to type=gha,mode=max .` | Enable inline GitHub Actions caching for multi-stage BuildKit execution. |
-| `docker history --no-trunc <image_id>` | Display full un-truncated layer commands to identify layer bloat source. |
-| `docker builder prune --filter type=exec.cachemount` | Clear persistent BuildKit cache mounts from local storage. |
-| `docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t img .` | Embed BuildKit cache metadata directly inside exported registry images. |
-
----
-
-## Debugging & Common Pitfalls
-
-### Missing CA certificates in `scratch` base images
-
-When porting a Go or Rust application from `alpine` or `debian` to `scratch`, outgoing HTTPS requests fail immediately upon startup.
-
-```text
-2024/03/15 10:22:41 Error fetching upstream API: Get "https://api.stripe.com/v1/charges": x509: certificate signed by unknown authority
-```
-
-The `scratch` image is entirely empty. It contains no root TLS certificates in `/etc/ssl/certs/ca-certificates.crt`.
-
-Copy the certificate bundle from your builder stage into your final stage:
-
-```dockerfile
-FROM golang:1.22-bookworm AS builder
-RUN apt-get update && apt-get install -y ca-certificates update-ca-certificates
-
-FROM scratch
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /build/bin/server /app/server
-ENTRYPOINT ["/app/server"]
-```
-
-### Invalidated layer caching from incorrect directive order
-
-Every `COPY` or `RUN` statement invalidates the cache for all subsequent lines if the source files change. Placing `COPY . .` at the top of a multi-stage `Dockerfile` causes `go mod download` or `npm install` to run on every line modification, ruining CI pipeline speed.
-
-```text
-# BAD: Invalidates package cache on any source file edit
-COPY . .
-RUN go mod download
-```
-
-Separate dependency declarations from source files:
-
-```dockerfile
-# GOOD: Only re-downloads dependencies when manifests change
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-```
-
-### Dynamic C library resolution failure (`glibc` vs `musl`)
-
-A binary compiled on a standard Linux builder stage fails to execute in an Alpine runtime stage.
-
-```text
-exec /app/server: no such file or directory
-```
-
-The path `/app/server` exists, but the dynamic linker loader specified inside the ELF binary header (typically `/lib64/ld-linux-x86-64.so.2` from `glibc`) is absent in Alpine (`musl`-based).
-
-You have two choices to fix this execution error:
-
-1. Compile a fully static binary in your build stage:
-   ```dockerfile
-   RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/server .
-   ```
-2. Switch your builder or runtime image so both use identical standard libraries (e.g., compile on `golang:alpine` if deploying to `alpine`).
-
----
-
-## References
-
-1. Docker Documentation: [Use multi-stage builds](https://docs.docker.com/build/building/multi-stage/)
-2. Open Container Initiative: [OCI Image Format Specification v1.0.1](https://github.com/opencontainers/image-spec)
-3. Google Container Tools: [Distroless Container Images Specification](https://github.com/GoogleContainerTools/distroless)
-
----
-
-## FAQ
-
-### Does BuildKit automatically skip unused build stages?
-
-BuildKit analyzes the target stage specified in your build invocation and builds a dependency graph. If a stage in your `Dockerfile` is not referenced by the final stage or by a `COPY --from` instruction, BuildKit completely skips the execution of that stage's commands.
-
-### How do I debug runtime errors when my target image lacks a shell?
-
-You cannot attach a bash shell to `scratch` or `distroless` containers directly. In Kubernetes 1.23+, use `kubectl debug` to attach an ephemeral container containing diagnostic tools (`busybox` or `nicolaka/netshoot`) to the running pod's process namespace:
-
-```bash
-kubectl debug -it <pod-name> --image=cgr.dev/chainguard/busybox --target=<container-name>
-```
-
-For local Docker testing, build a dedicated debug image target by adding a temporary stage ending in `FROM alpine` or `FROM debian:slim`.
-
-### Can I copy artifacts from an existing external Docker image instead of a local stage?
-
-Pass the target image directly into the `--from` flag of a `COPY` instruction. You do not need to write a pre-stage `FROM` line to pull isolated assets from third-party tools.
-
-```dockerfile
-# Copy the official HashiCorp Vault binary directly into your runtime image
-COPY --from=hashicorp/vault:1.15.2 /bin/vault /usr/local/bin/vault
-```
-
-### Will multi-stage builds slow down CI/CD pipelines due to cache hits failing across ephemeral runners?
-
-Ephemeral CI runners start with fresh Docker daemon storage, causing local layer caches to miss on every pipeline run. Mitigate this by exporting inline BuildKit build caches directly to your container registry using `--cache-to=type=registry` and `--cache-from=type=registry` flags during the `docker buildx build` execution step.
+| Symptom / Error | Root Cause | Fix & Verify |
+|---|---|---|
+| Runtime container exits immediately with `exec /app/server: no such file or directory` on Alpine or Scratch | Binary was compiled dynamically against `glibc` (`/lib64/ld-linux-x86-64.so.2`), which does not exist in `musl` (Alpine) or `scratch` | Set `CGO_ENABLED=0` in the builder `go build` command or switch the runtime base to `gcr.io/distroless/base-debian12:nonroot` |
+| Outgoing HTTPS calls fail with `x509: certificate signed by unknown authority` | Final stage uses `FROM scratch` without copying `/etc/ssl/certs/ca-certificates.crt` from the builder stage | Use `gcr.io/distroless/static-debian12:nonroot` (which includes CA certs) or add `COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/` |
+| `go mod download` or `pip install` re-runs from scratch on every single code edit | `COPY . .` is placed before the dependency manifest copy (`COPY go.mod go.sum ./`), invalidating layer cache | Copy dependency lockfiles and run the package download step before `COPY . .` |
+| Temporary GitHub Actions runners miss BuildKit cache on every PR run | Local `--mount=type=cache` directories live on the runner VM disk and are wiped after the job ends | Build with `docker buildx build --cache-from type=gha --cache-to type=gha,mode=max` in CI |

@@ -4,351 +4,565 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page.title | default: site.title }}</title>
+  {% if page.description %}
+  <meta name="description" content="{{ page.description | escape }}">
+  {% endif %}
+  {% assign og_img = page.cover_image | default: "/assets/profile-banner.svg" %}
+  <meta property="og:title" content="{{ page.title | default: site.title | escape }}">
+  <meta property="og:description" content="{{ page.description | default: site.description | escape }}">
+  <meta property="og:image" content="{{ og_img }}">
+  <meta name="twitter:card" content="summary_large_image">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Liberation Mono", monospace;
-      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      --bg: #faf8f2;
-      --surface: #f2efe6;
-      --surface-alt: #e7e3d6;
-      --surface-code: #181a1b;
-      --code-text: #e6e4dd;
-      --text: #22201d;
-      --text-soft: #3d3a35;
-      --muted: #6e6a63;
-      --rule: #22201d;
-      --rule-light: #dcd8ca;
-      --link: #0f4c81;
-      --ok: #166534;
+      --font-sans: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-head: "Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+
+      --main-bg: #ffffff;
+      --main-border-color: #f3f3f3;
+      --text-color: #34343c;
+      --text-muted-color: #757575;
+      --heading-color: #2a2a2a;
+      --label-color: #585858;
+      --link-color: #0056b2;
+      --link-underline-color: #dee2e6;
+      --toc-highlight: #0550ae;
+
+      --language-border-color: #ececec;
+      --highlight-bg-color: #f6f8fa;
+      --highlight-lineno-color: #9e9e9e;
+      --inline-code-bg: rgba(25, 25, 28, 0.05);
+      --code-color: #3a3a3a;
+      --code-header-text-color: #a3a3a3;
+      --code-header-muted-color: #e5e5e5;
+      --code-header-icon-color: #c9c8c8;
+      --clipboard-checked-color: #43c743;
+
+      --prompt-text-color: rgba(46, 46, 46, 0.77);
+      --prompt-tip-bg: rgba(123, 247, 144, 0.2);
+      --prompt-tip-icon-color: #03b303;
+      --prompt-info-bg: #e1f5fe;
+      --prompt-info-icon-color: #0070cb;
+      --prompt-warning-bg: #fff3cd;
+      --prompt-warning-icon-color: #ef9c03;
+      --prompt-danger-bg: rgba(248, 215, 218, 0.56);
+      --prompt-danger-icon-color: #df3c30;
     }
+
     body.dark-theme {
-      --bg: #151718;
-      --surface: #1c1f21;
-      --surface-alt: #25292c;
-      --surface-code: #0e1011;
-      --code-text: #e2dfdb;
-      --text: #e5e2dc;
-      --text-soft: #c7c3bc;
-      --muted: #8e8a82;
-      --rule: #d5c4a1;
-      --rule-light: #2e3235;
-      --link: #7daea3;
-      --ok: #a9b665;
+      --main-bg: #1b1b1e;
+      --main-border-color: #2c2d2d;
+      --text-color: #afb0b1;
+      --text-muted-color: #868686;
+      --heading-color: #cccccc;
+      --label-color: #a7a7a7;
+      --link-color: #8ab4f8;
+      --link-underline-color: #526c96;
+      --toc-highlight: #74b2f3;
+
+      --language-border-color: #2d2d2d;
+      --highlight-bg-color: #151515;
+      --highlight-lineno-color: #808080;
+      --inline-code-bg: rgba(255, 255, 255, 0.05);
+      --code-color: #b0b0b0;
+      --code-header-text-color: #6a6a6a;
+      --code-header-muted-color: #353535;
+      --code-header-icon-color: #565656;
+
+      --prompt-text-color: rgba(216, 212, 212, 0.75);
+      --prompt-tip-bg: rgba(22, 60, 36, 0.64);
+      --prompt-tip-icon-color: rgba(15, 164, 15, 0.81);
+      --prompt-info-bg: rgba(7, 59, 104, 0.8);
+      --prompt-info-icon-color: #0075d1;
+      --prompt-warning-bg: rgba(90, 69, 3, 0.88);
+      --prompt-warning-icon-color: rgba(255, 165, 0, 0.8);
+      --prompt-danger-bg: rgba(86, 28, 8, 0.8);
+      --prompt-danger-icon-color: #cd0202;
     }
+
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
+      background: var(--main-bg);
+      color: var(--text-color);
+      font-family: var(--font-sans);
       font-size: 16.5px;
-      line-height: 1.8;
-      padding: 2rem 1.5rem 5rem;
+      line-height: 1.75;
       -webkit-font-smoothing: antialiased;
+      padding: 1.25rem 1.5rem 5rem;
     }
-    .calm-container {
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    .calm-topbar {
+
+    .chirpy-container { max-width: 1180px; margin: 0 auto; }
+    .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 0.75rem;
-      padding-bottom: 1rem;
-      margin-bottom: 2.5rem;
-      border-bottom: 1px solid var(--rule-light);
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--muted);
+      min-height: 3rem;
+      padding-bottom: 0.65rem;
+      margin-bottom: 1.75rem;
+      border-bottom: 1px solid var(--main-border-color);
+      font-size: 0.92rem;
+      color: var(--text-muted-color);
     }
-    .calm-topbar a {
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 600;
+    .breadcrumb a { color: var(--link-color); text-decoration: none; font-weight: 600; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb span + span::before {
+      content: "›";
+      padding: 0 0.45rem;
+      color: var(--text-muted-color);
     }
-    .calm-topbar a:hover {
-      color: var(--link);
-      text-decoration: underline;
-    }
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-    .top-btn {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--rule-light);
-      padding: 0.15rem 0.55rem;
-      font-family: var(--mono);
-      font-size: 0.74rem;
+    .top-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .theme-btn {
+      background: var(--highlight-bg-color);
+      color: var(--text-color);
+      border: 1px solid var(--language-border-color);
+      padding: 0.25rem 0.7rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
       cursor: pointer;
     }
-    .top-btn:hover {
-      background: var(--text);
-      color: var(--bg);
-    }
-    .calm-grid {
+    .theme-btn:hover { border-color: var(--toc-highlight); color: var(--toc-highlight); }
+
+    .chirpy-grid {
       display: grid;
-      grid-template-columns: minmax(0, 680px) 220px;
+      grid-template-columns: minmax(0, 820px) 260px;
       justify-content: space-between;
       gap: 3rem;
       align-items: start;
     }
-    @media (max-width: 880px) {
-      .calm-grid { grid-template-columns: 1fr; }
+    @media (max-width: 1024px) { .chirpy-grid { grid-template-columns: 1fr; } }
+
+    h1, h2, h3, h4 {
+      color: var(--heading-color);
+      font-family: var(--font-head);
+      font-weight: 600;
+      scroll-margin-top: 2.5rem;
     }
-    .calm-header {
-      margin-bottom: 2rem;
-    }
-    .calm-kicker {
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-    }
-    .calm-title {
-      font-size: 2rem;
-      font-weight: 700;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
-      color: var(--text);
-      margin-bottom: 0.85rem;
-    }
-    .calm-env-line {
-      font-family: var(--mono);
-      font-size: 0.76rem;
-      color: var(--muted);
+    h1 { font-size: 2.05rem; line-height: 1.25; margin-bottom: 0.85rem; }
+    .post-meta { font-size: 0.86rem; color: var(--text-muted-color); margin-bottom: 1.35rem; }
+    .post-meta-row {
       display: flex;
-      gap: 0.45rem;
-      flex-wrap: wrap;
+      justify-content: space-between;
       align-items: center;
-      margin-top: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.45rem;
     }
-    .calm-env-tag {
-      background: var(--surface);
-      border: 1px solid var(--rule-light);
-      padding: 0.08rem 0.48rem;
-      border-radius: 3px;
-      color: var(--ok);
+    .env-pill {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 6px;
+      background: var(--highlight-bg-color);
+      border: 1px solid var(--language-border-color);
+      color: var(--toc-highlight);
       font-weight: 600;
+      margin-right: 0.25rem;
     }
-    article {
-      color: var(--text-soft);
-    }
-    article h1 {
-      font-size: 2rem;
+    .topic-pill {
+      display: inline-block;
+      font-family: var(--font-head);
+      font-size: 0.76rem;
+      padding: 0.1rem 0.55rem;
+      border-radius: 6px;
+      background: rgba(5, 80, 174, 0.1);
+      color: var(--toc-highlight);
       font-weight: 700;
-      line-height: 1.25;
-      color: var(--text);
-      margin: 1.5rem 0 1rem;
+      text-decoration: none;
     }
-    article h2 {
-      font-size: 1.38rem;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.01em;
-      margin: 2.6rem 0 0.85rem;
-      padding-bottom: 0.38rem;
-      border-bottom: 1px solid var(--rule-light);
+
+    .topic-path-card {
+      background: var(--highlight-bg-color);
+      border: 1px solid var(--language-border-color);
+      border-radius: 10px;
+      padding: 0.85rem 1.15rem;
+      margin-bottom: 1.4rem;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
     }
-    article h3 {
-      font-size: 1.12rem;
-      font-weight: 600;
-      color: var(--text);
-      margin: 1.75rem 0 0.55rem;
-    }
-    article p {
-      margin-bottom: 1.2rem;
-    }
-    article ul, article ol {
-      margin: 0.5rem 0 1.25rem 1.4rem;
-    }
-    article li {
-      margin-bottom: 0.35rem;
-    }
-    article a {
-      color: var(--link);
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-    article strong {
-      color: var(--text);
-    }
-    article code {
-      font-family: var(--mono);
-      font-size: 0.84em;
-      background: var(--surface);
-      padding: 0.12rem 0.38rem;
-      border-radius: 3px;
-      color: var(--text);
-    }
-    article pre {
-      position: relative;
-      background: var(--surface-code);
-      color: var(--code-text);
-      border: 1px solid rgba(128, 128, 128, 0.22);
-      border-radius: 5px;
-      padding: 1.05rem 1.2rem;
-      overflow-x: auto;
-      margin: 1.15rem 0 1.75rem;
+    .topic-path-links {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.45rem;
       font-size: 0.83rem;
-      line-height: 1.6;
     }
-    article pre code {
-      background: none;
-      padding: 0;
-      font-size: 1em;
-      color: inherit;
+    .topic-path-links a, .topic-path-links span.current {
+      color: var(--text-muted-color);
+      text-decoration: none;
+      padding: 0.15rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--language-border-color);
+      background: var(--main-bg);
     }
-    .copy-btn {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      padding: 0.2rem 0.6rem;
-      font-size: 0.72rem;
-      font-family: var(--mono);
-      background: #2e3235;
-      color: #cbd5e1;
-      border: 1px solid #475569;
-      border-radius: 4px;
-      cursor: pointer;
+    .topic-path-links span.current {
+      color: var(--toc-highlight);
+      border-color: var(--toc-highlight);
+      font-weight: 700;
+    }
+
+    .content { font-size: 1.03rem; margin-top: 1.1rem; }
+    .content p { margin-bottom: 1.05rem; }
+    .content ul, .content ol { padding-inline-start: 1.75rem; margin-bottom: 1.1rem; }
+    .content li { margin: 0.28rem 0; padding-left: 0.25rem; }
+    .content h2 {
+      font-size: 1.52rem;
+      margin: 2.3rem 0 1.05rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--main-border-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .content h3 { font-size: 1.2rem; margin: 1.65rem 0 0.65rem; }
+    .content h2 .anchor {
+      font-size: 80%;
+      color: var(--text-muted-color);
+      text-decoration: none;
+      margin-left: 0.4rem;
       opacity: 0;
-      transition: opacity 0.15s;
+      transition: opacity 0.2s;
     }
-    pre:hover .copy-btn { opacity: 1; }
-    .copy-btn:hover { background: #475569; color: #fff; }
-    .copy-btn.copied { background: #14532d; color: #bbf7d0; }
-    .calm-summary {
-      background: var(--surface);
-      border-left: 3px solid var(--link);
-      padding: 1.25rem 1.5rem;
-      margin: 1rem 0 2rem;
-      border-radius: 0 4px 4px 0;
+    .content h2:hover .anchor { opacity: 1; }
+    .content a:not(.anchor):not(.nav-card) {
+      color: var(--link-color);
+      text-decoration: none;
+      border-bottom: 1px solid var(--link-underline-color);
     }
-    .calm-summary p:last-child,
-    .calm-summary ul:last-child,
-    .calm-summary pre:last-child {
-      margin-bottom: 0;
+    .content p code, .content li code, .content td code, .content blockquote code {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 3px 5px;
+      border-radius: 6px;
+      background-color: var(--inline-code-bg);
+      color: var(--code-color);
     }
-    article blockquote {
-      border-left: 3px solid var(--link);
-      margin: 1.25rem 0;
-      padding: 0.65rem 1.15rem;
-      color: var(--muted);
-      background: var(--surface);
-      border-radius: 0 4px 4px 0;
+    .content img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 10px;
+      border: 1px solid var(--language-border-color);
+      margin: 1.1rem 0 1.5rem;
+      background: #ffffff;
+      padding: 0.35rem;
     }
-    article table {
+
+    .content img[src$="architecture.svg"] {
+      background: #fffdf5;
+      border: 3px solid #28253D;
+      border-radius: 14px;
+      box-shadow: 5px 5px 0 rgba(40, 37, 61, 0.18);
+      padding: 0.5rem;
+      transform: rotate(-0.3deg);
+    }
+    .content img[src$="architecture.svg"] + em, .content p > em:only-child { color: var(--text-muted-color); font-size: 0.82rem; }
+
+    div[class*="language-"] {
+      background-color: var(--highlight-bg-color);
+      box-shadow: var(--language-border-color) 0 0 0 1px;
+      border-radius: 10px;
+      margin: 0.65rem 0 1.35rem;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 2.25rem;
+      margin-left: 0;
+      margin-right: 0.25rem;
+      user-select: none;
+    }
+    .code-header::before {
+      content: "";
+      display: inline-block;
+      margin-left: 1rem;
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+      background-color: var(--code-header-muted-color);
+      box-shadow: 1.25rem 0 0 var(--code-header-muted-color), 2.5rem 0 0 var(--code-header-muted-color);
+    }
+    .code-header span {
+      line-height: 2.25rem;
+      margin-left: -0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .code-header span::before {
+      content: "</>";
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--code-header-icon-color);
+    }
+    .code-header span[data-file]::before { content: "📄"; font-size: 0.78rem; }
+    .code-header span[data-label-text="Directory Layout"]::before { content: "📁"; font-size: 0.78rem; }
+    .code-header span::after {
+      content: attr(data-label-text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--code-header-text-color);
+    }
+    .code-header button {
+      border: 1px solid transparent;
+      height: 2rem;
+      padding: 0 0.6rem;
+      margin-right: 0.25rem;
+      background-color: inherit;
+      color: var(--code-header-text-color);
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .code-header button:hover { background: rgba(128, 128, 128, 0.12); }
+    .code-header button.copied { color: var(--clipboard-checked-color); font-weight: 700; }
+
+    .highlight { overflow: auto; padding-bottom: 0.65rem; background-color: var(--highlight-bg-color); }
+    .rouge-table { border-collapse: collapse; width: 100%; margin: 0 !important; }
+    .rouge-table td { padding: 2px 5px; vertical-align: top; border: none !important; }
+    .rouge-table td.rouge-gutter { width: 1%; padding-left: 1rem; padding-right: 0.75rem; user-select: none; }
+    .rouge-table .lineno {
+      text-align: right;
+      color: var(--highlight-lineno-color);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.45rem;
+      margin: 0;
+    }
+    .rouge-table td.rouge-code { padding-left: 0.5rem; padding-right: 1.5rem; }
+    .rouge-table td.rouge-code pre {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      line-height: 1.45rem;
+      color: var(--text-color);
+      overflow: visible;
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+    div.language-plaintext td.rouge-gutter,
+    div.hide-gutter td.rouge-gutter { display: none; }
+    div.language-plaintext td.rouge-code,
+    div.hide-gutter td.rouge-code { padding-left: 1.2rem; }
+
+    blockquote {
+      border-left: 3px solid var(--toc-highlight);
+      margin: 1.1rem 0 1.35rem;
+      padding: 0.85rem 1.1rem;
+      background: var(--highlight-bg-color);
+      border-radius: 0 8px 8px 0;
+      color: var(--prompt-text-color);
+    }
+    blockquote[class^="prompt-"] {
+      border: 2px solid #28253D;
+      border-radius: 10px;
+      box-shadow: 3px 3px 0 rgba(40, 37, 61, 0.14);
+      position: relative;
+      padding: 0.95rem 1.1rem 0.95rem 3.1rem;
+      color: var(--prompt-text-color);
+      margin: 1.1rem 0 1.35rem;
+      font-size: 0.96rem;
+    }
+    blockquote[class^="prompt-"] p:last-child { margin-bottom: 0; }
+    blockquote[class^="prompt-"]::before {
+      position: absolute;
+      left: 0.95rem;
+      top: 0.95rem;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    blockquote.prompt-info { background-color: var(--prompt-info-bg); }
+    blockquote.prompt-info::before { content: "ℹ"; color: var(--prompt-info-icon-color); }
+    blockquote.prompt-tip { background-color: var(--prompt-tip-bg); }
+    blockquote.prompt-tip::before { content: "💡"; color: var(--prompt-tip-icon-color); }
+    blockquote.prompt-warning { background-color: var(--prompt-warning-bg); }
+    blockquote.prompt-warning::before { content: "⚠"; color: var(--prompt-warning-icon-color); }
+    blockquote.prompt-danger { background-color: var(--prompt-danger-bg); }
+    blockquote.prompt-danger::before { content: "⛔"; color: var(--prompt-danger-icon-color); }
+
+    .table-wrapper { overflow-x: auto; margin-bottom: 1.5rem; }
+    .content table:not(.rouge-table) {
       width: 100%;
       border-collapse: collapse;
-      margin: 1.1rem 0 2rem;
-      font-size: 0.88rem;
-      line-height: 1.55;
+      font-size: 0.92rem;
+      margin: 1rem 0 1.6rem;
     }
-    article th {
-      font-family: var(--mono);
-      font-size: 0.74rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--muted);
+    .content table:not(.rouge-table) thead { border-bottom: 2px solid rgba(210, 215, 217, 0.75); }
+    .content table:not(.rouge-table) th,
+    .content table:not(.rouge-table) td {
+      padding: 0.55rem 0.9rem;
       text-align: left;
-      padding: 0.6rem 0.75rem;
-      border-bottom: 2px solid var(--rule-light);
-    }
-    article td {
-      padding: 0.75rem;
-      border-bottom: 1px solid var(--rule-light);
+      border-bottom: 1px solid var(--main-border-color);
       vertical-align: top;
     }
-    article img {
-      max-width: 100%;
-      border-radius: 5px;
-      margin: 1rem 0;
-      border: 1px solid var(--rule-light);
+    .content table:not(.rouge-table) tbody tr:nth-child(2n+1) { background-color: var(--highlight-bg-color); }
+
+    .post-tail-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--main-border-color);
     }
-    article hr {
-      border: none;
-      border-top: 1px solid var(--rule-light);
-      margin: 2rem 0;
-    }
-    .calm-sidebar {
-      position: sticky;
-      top: 3.5rem;
-      padding-left: 1.15rem;
-      border-left: 1px solid var(--rule-light);
-      font-size: 0.82rem;
-      line-height: 1.5;
-    }
-    .calm-sb-label {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 0.65rem;
-      font-weight: 600;
-    }
-    .calm-toc {
-      list-style: none;
+    .back-to-top {
+      position: fixed;
+      right: 1.75rem;
+      bottom: 1.75rem;
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 50%;
+      border: 1px solid var(--language-border-color);
+      background: var(--highlight-bg-color);
+      color: var(--text-muted-color);
+      font-size: 0.95rem;
+      cursor: pointer;
       display: flex;
-      flex-direction: column;
-      gap: 0.48rem;
-      margin-bottom: 2rem;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
-    .calm-toc a {
-      color: var(--muted);
-      text-decoration: none;
+    .back-to-top:hover { color: var(--toc-highlight); border-color: var(--toc-highlight); }
+    .post-tail-wrapper {
+      margin-top: 2.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--main-border-color);
+      font-size: 0.86rem;
+      color: var(--text-muted-color);
     }
-    .calm-toc a:hover {
-      color: var(--text);
-      font-weight: 600;
-    }
-    .calm-author-note {
-      color: var(--muted);
-      font-size: 0.8rem;
-      line-height: 1.55;
-    }
-    .calm-author-links {
-      margin-top: 0.6rem;
+    .post-tail-meta {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .post-tail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
       gap: 0.35rem;
-      font-family: var(--mono);
-      font-size: 0.76rem;
+      margin-bottom: 1.15rem;
     }
-    .calm-author-links a {
-      color: var(--link);
+    .post-tail-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding-top: 0.85rem;
+      border-top: 1px dashed var(--main-border-color);
+      font-size: 0.82rem;
+    }
+    .further-reading {
+      margin-top: 2.25rem;
+      padding-top: 1.35rem;
+      border-top: 1px solid var(--main-border-color);
+    }
+    .further-reading h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.9rem;
+    }
+    .further-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.9rem;
+    }
+    .further-card {
+      display: block;
+      border: 2px solid #28253D;
+      border-radius: 10px;
+      box-shadow: 3px 3px 0 rgba(40, 37, 61, 0.14);
+      padding: 0.9rem 1.05rem;
+      background: var(--highlight-bg-color);
+      text-decoration: none !important;
+      border-bottom: 2px solid #28253D !important;
+      color: var(--text-color) !important;
+    }
+    .further-card:hover { border-color: var(--toc-highlight) !important; }
+    .further-card time { font-size: 0.75rem; color: var(--text-muted-color); display: block; }
+    .further-card h4 { font-size: 0.98rem; margin: 0.25rem 0 0.4rem; color: var(--heading-color); }
+    .further-card p { font-size: 0.82rem; color: var(--text-muted-color); margin: 0 !important; line-height: 1.45; }
+    .nav-card {
+      border: 2px solid #28253D;
+      border-radius: 10px;
+      box-shadow: 3px 3px 0 rgba(40, 37, 61, 0.14);
+      padding: 0.85rem 1.1rem;
       text-decoration: none;
+      color: var(--link-color);
+      background: var(--highlight-bg-color);
     }
-    .calm-author-links a:hover {
-      text-decoration: underline;
+    .nav-card:hover { border-color: var(--toc-highlight); }
+    .nav-card span {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: var(--text-muted-color);
+      margin-bottom: 0.2rem;
+    }
+
+    #panel-wrapper { position: sticky; top: 2rem; font-size: 0.88rem; color: var(--text-muted-color); }
+    .access > section, #toc-wrapper {
+      border-left: 1px solid var(--main-border-color);
+      padding-left: 1rem;
+      margin-bottom: 2.25rem;
+    }
+    .panel-heading {
+      font-family: var(--font-head);
+      color: var(--label-color);
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 0.65rem;
+    }
+    #toc-wrapper ul { list-style: none; font-size: 0.85rem; line-height: 1.35; padding-left: 0; }
+    #toc-wrapper ul li a.toc-link {
+      display: block;
+      padding: 0.38rem 0 0.38rem 0.85rem;
+      color: var(--text-muted-color);
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #toc-wrapper ul li a.toc-link:hover { color: var(--toc-highlight); }
+    #toc-wrapper ul li a.is-active-link { color: var(--toc-highlight) !important; font-weight: 600; }
+    #toc-wrapper ul li a.is-active-link::before {
+      content: "";
+      position: absolute;
+      left: -1rem;
+      top: 0.35rem;
+      width: 2px;
+      height: 1.15rem;
+      background-color: var(--toc-highlight);
+    }
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+    .post-tag {
+      display: inline-block;
+      border-radius: 0.7rem;
+      border: 1px solid var(--language-border-color);
+      padding: 0.15rem 0.55rem;
+      font-size: 0.78rem;
+      color: var(--text-muted-color);
+      text-decoration: none;
     }
     @media print {
-      body {
-        background: #fff !important;
-        color: #000 !important;
-        font-size: 11pt;
-        padding: 0;
-      }
-      .calm-topbar, .calm-sidebar, .copy-btn {
-        display: none !important;
-      }
-      .calm-grid {
-        grid-template-columns: 1fr !important;
-      }
-      article pre, article table, .calm-summary {
-        page-break-inside: avoid;
-      }
-      article pre {
-        background: #f5f5f5 !important;
-        color: #000 !important;
-        border: 1px solid #ccc !important;
-      }
+      body { background: #fff !important; color: #000 !important; font-size: 11pt; padding: 0; }
+      .topbar, #panel-wrapper, .code-header button { display: none !important; }
+      .chirpy-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -366,135 +580,349 @@
   {% assign sec = page.section | default: 7 | plus: 0 %}
   {% assign slug_label = page.slug | default: page.name | remove: ".md" %}
   {% assign read_mins = content | number_of_words | divided_by: 200 | plus: 1 %}
+  {% assign topic_id = page.topic | default: "containers" %}
+  {% case topic_id %}
+    {% when "linux-wsl2" %}{% assign topic_label = "Linux & WSL2 Foundations" %}
+    {% when "containers" %}{% assign topic_label = "Container Architecture" %}
+    {% when "kubernetes" %}{% assign topic_label = "Kubernetes & Helm" %}
+    {% when "aws-cicd" %}{% assign topic_label = "AWS & CI/CD Delivery" %}
+    {% when "observability" %}{% assign topic_label = "SRE & Observability" %}
+    {% else %}{% assign topic_label = topic_id %}
+  {% endcase %}
 
-  <div class="calm-container">
-    <div class="calm-topbar">
-      <a href="{{ '/' | relative_url }}">← spmahapatra(9) manual index</a>
+  <div class="chirpy-container">
+    <header class="topbar">
+      <nav class="breadcrumb">
+        <span><a href="{{ '/' | relative_url }}">spmahapatra(9)</a></span>
+        <span>{{ topic_label }}</span>
+        <span>{{ slug_label }}({{ sec }})</span>
+      </nav>
       <div class="top-actions">
-        <span>{{ slug_label }}({{ sec }}) &nbsp;•&nbsp; {{ read_mins }} min read</span>
-        <button class="top-btn" onclick="toggleTheme()" title="Toggle Paper / Dark Mode (Key: t)">Theme [t]</button>
-        <button class="top-btn" onclick="window.print()" title="Export Printable PDF Datasheet">Print PDF ⎙</button>
+        <button class="theme-btn" onclick="toggleTheme()" title="Toggle Light / Dark Mode (Key: t)">Light / Dark [t]</button>
+        <button class="theme-btn" onclick="window.print()" title="Export Printable PDF">Print PDF ⎙</button>
       </div>
-    </div>
+    </header>
 
-    <div class="calm-grid">
+    <div class="chirpy-grid">
       <main>
-        <header class="calm-header">
-          <div class="calm-kicker">SECTION {{ sec }} // TECHNICAL MANUAL</div>
-          <h1 class="calm-title">{{ page.title }}</h1>
-          {% if page.tested_on and page.tested_on.size > 0 %}
-          <div class="calm-env-line">
-            <span>Verified on:</span>
-            {% for env in page.tested_on %}
-              <span class="calm-env-tag">✓ {{ env }}</span>
-            {% endfor %}
+        <article>
+          <header>
+            <h1>{{ page.title }}</h1>
+            <div class="post-meta">
+              <div>
+                {% if page.date %}
+                <span>Posted <time>{{ page.date }}</time></span> &nbsp;•&nbsp;
+                {% endif %}
+                <span class="topic-pill">Topic: {{ topic_label }}</span>
+              </div>
+              <div class="post-meta-row">
+                <span>
+                  By <strong><a href="https://github.com/spmahapatra" style="color:inherit;text-decoration:none;">spmahapatra</a></strong>
+                  {% if page.tested_on and page.tested_on.size > 0 %}
+                    &nbsp;•&nbsp;
+                    {% for env in page.tested_on %}
+                      <span class="env-pill">✓ {{ env }}</span>
+                    {% endfor %}
+                  {% endif %}
+                </span>
+                <span><em>{{ read_mins }} min</em> read</span>
+              </div>
+            </div>
+          </header>
+
+          {% if page.prev_slug or page.next_slug %}
+          <div class="topic-path-card">
+            <span style="font-weight:600;color:var(--heading-color);">{{ topic_label }} Track:</span>
+            <div class="topic-path-links">
+              {% if page.prev_slug and page.prev_slug != "" %}
+              <a href="{{ '/' | append: page.prev_slug | append: '.html' | relative_url }}">← Prerequisite: {{ page.prev_slug }}</a>
+              {% endif %}
+              <span class="current">● {{ page.title }}</span>
+              {% if page.next_slug and page.next_slug != "" %}
+              <a href="{{ '/' | append: page.next_slug | append: '.html' | relative_url }}">Next: {{ page.next_slug }} →</a>
+              {% endif %}
+            </div>
           </div>
           {% endif %}
-        </header>
 
-        <article id="article-body">
-          {{ content }}
+          <div class="content" id="article-body">
+            {{ content }}
+
+            <div class="post-tail-wrapper">
+              <div class="post-tail-meta">
+                <span>📁 <strong style="color:var(--heading-color);">{{ topic_label }}</strong></span>
+                <span>Section {{ sec }} Blueprint</span>
+              </div>
+              {% if page.tags and page.tags.size > 0 %}
+              <div class="post-tail-tags">
+                <span>🏷️</span>
+                {% for t in page.tags %}
+                <span class="post-tag">{{ t }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+              <div class="post-tail-bottom">
+                <span>This post is licensed under <strong>CC BY 4.0</strong> by the author.</span>
+                <span>Share: <a href="https://www.linkedin.com/in/spmahapatra" target="_blank" rel="noopener">LinkedIn</a> • <a href="#" onclick="navigator.clipboard&&navigator.clipboard.writeText(window.location.href);return false;">Copy Link</a></span>
+              </div>
+            </div>
+
+            {% assign related_cards = site.pages | where: "topic", topic_id %}
+            {% if related_cards.size > 1 %}
+            <aside class="further-reading" aria-label="Further Reading">
+              <h3>Further Reading</h3>
+              <div class="further-grid">
+                {% for rp in related_cards limit: 4 %}
+                  {% if rp.title and rp.url != page.url %}
+                  <a class="further-card" href="{{ rp.url | relative_url }}">
+                    {% if rp.date %}<time>{{ rp.date }}</time>{% endif %}
+                    <h4>{{ rp.title }}</h4>
+                    {% if rp.description %}<p>{{ rp.description | truncate: 115 }}</p>{% endif %}
+                  </a>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </aside>
+            {% endif %}
+
+            {% if page.prev_slug or page.next_slug %}
+            <div class="post-tail-nav">
+              {% if page.prev_slug and page.prev_slug != "" %}
+              <a class="nav-card" href="{{ '/' | append: page.prev_slug | append: '.html' | relative_url }}">
+                <span>← Prerequisite Guide</span>
+                <strong>{{ page.prev_slug }}</strong>
+              </a>
+              {% else %}
+              <div></div>
+              {% endif %}
+              {% if page.next_slug and page.next_slug != "" %}
+              <a class="nav-card" href="{{ '/' | append: page.next_slug | append: '.html' | relative_url }}" style="text-align:right;">
+                <span>Next in {{ topic_label }} →</span>
+                <strong>{{ page.next_slug }}</strong>
+              </a>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
         </article>
       </main>
 
-      <aside class="calm-sidebar">
-        <div class="calm-sb-label">On this page</div>
-        <ul class="calm-toc" id="calm-toc"></ul>
+      <aside id="panel-wrapper">
+        <div class="access">
+          <section>
+            <h2 class="panel-heading">Related in {{ topic_label }}</h2>
+            <ul style="list-style:none;padding-left:0;font-size:0.84rem;line-height:1.55;">
+              {% assign topic_pages = site.pages | where: "topic", topic_id %}
+              {% for tp in topic_pages %}
+                {% if tp.title %}
+                <li style="margin-bottom:0.45rem;">
+                  {% if tp.url == page.url %}
+                  <strong style="color:var(--toc-highlight);">● {{ tp.title }} (This Post)</strong>
+                  {% else %}
+                  <a href="{{ tp.url | relative_url }}" style="color:var(--text-muted-color);text-decoration:none;">{{ tp.title }}</a>
+                  {% endif %}
+                </li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          </section>
 
-        <div class="calm-sb-label">Author</div>
-        <div class="calm-author-note">
-          <strong style="color:var(--text);">SP.Mahapatra</strong><br>
-          DevOps &amp; Platform Engineering
+          {% if page.tags and page.tags.size > 0 %}
+          <section>
+            <h2 class="panel-heading">Tags</h2>
+            <div class="tag-cloud">
+              {% for t in page.tags %}
+              <span class="post-tag">{{ t }}</span>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
         </div>
-        <div class="calm-author-links">
-          <a href="https://www.linkedin.com/in/spmahapatra" target="_blank" rel="noopener">LinkedIn ↗</a>
-          <a href="https://github.com/spmahapatra" target="_blank" rel="noopener">GitHub ↗</a>
-          <a href="#" onclick="window.print(); return false;">Export PDF ⎙</a>
-        </div>
+
+        <section id="toc-wrapper">
+          <h2 class="panel-heading">Contents</h2>
+          <nav>
+            <ul id="chirpy-toc"></ul>
+          </nav>
+        </section>
       </aside>
     </div>
   </div>
+  <button class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top" aria-label="Back to top">↑</button>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"
-          integrity="sha512-7O5pXpc0oCRSz46C5o5bGXIBPa+rS9FHQlByg8Q3kxSKFhQjJCmHMJKZNBx7OtTuST2UgFl6+pLH7MMK2JGQ=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     function toggleTheme() {
       var isDark = document.body.classList.toggle('dark-theme');
       try {
-        localStorage.setItem('spmahapatra_theme', isDark ? 'dark' : 'paper');
+        localStorage.setItem('spmahapatra_theme', isDark ? 'dark' : 'light');
       } catch (e) {}
     }
 
-    (function enhanceArticleDOM() {
+    (function enhanceChirpyDOM() {
       var article = document.getElementById('article-body');
       if (!article) return;
 
-      // 1. Strip the first Markdown H1 since the layout header renders page.title
+      // 1. Strip duplicate first H1 inside Markdown body & add comic caption under architecture.svg
       var firstH1 = article.querySelector('h1');
-      if (firstH1) {
-        firstH1.remove();
-      }
+      if (firstH1) firstH1.remove();
 
-      // 2. Build dynamic right-hand TOC from H2 headings & wrap Key Takeaways siblings in .calm-summary
-      var toc = document.getElementById('calm-toc');
+      Array.prototype.slice.call(article.querySelectorAll('img[src$="architecture.svg"]')).forEach(function(img) {
+        var cap = document.createElement('p');
+        cap.style.cssText = 'text-align:center;font-size:0.82rem;color:var(--text-muted-color);margin:-0.9rem 0 1.4rem;font-style:italic;';
+        cap.textContent = 'Fig 1 — 3-Panel Architecture Comic Strip (Panel 1: Inputs → Panel 2: Validation Gate → Panel 3: Verified vs. Blocked)';
+        img.parentNode.insertBefore(cap, img.nextSibling);
+      });
+
+      // 2. Transform > [!INFO|WARNING|TIP|DANGER] blockquotes into Chirpy prompt-* boxes
+      Array.prototype.slice.call(article.querySelectorAll('blockquote')).forEach(function(bq) {
+        var firstP = bq.querySelector('p') || bq;
+        var html = firstP.innerHTML.trim();
+        var m = html.match(/^\[!(INFO|WARNING|TIP|DANGER)\]\s*(?:<br\s*\/?>|\n)?\s*/i);
+        if (m) {
+          var kind = m[1].toLowerCase();
+          bq.className = 'prompt-' + kind;
+          firstP.innerHTML = html.slice(m[0].length);
+        }
+      });
+
+      // 3. Upgrade code blocks (both Kramdown div.highlighter-rouge and markdown2 <pre><code class="language-*">)
+      var pres = Array.prototype.slice.call(article.querySelectorAll('pre'));
+      pres.forEach(function(pre) {
+        if (pre.closest('.rouge-table')) return;
+
+        var codeEl = pre.querySelector('code');
+        var rawText = (codeEl ? codeEl.textContent : pre.textContent).replace(/\n$/, '');
+        var wrapper = pre.closest('div.highlighter-rouge');
+        var lang = 'plaintext';
+
+        if (wrapper) {
+          var wm = wrapper.className.match(/language-([a-z0-9_+-]+)/i);
+          if (wm) lang = wm[1].toLowerCase();
+        } else if (codeEl && codeEl.className) {
+          var cm = codeEl.className.match(/language-([a-z0-9_+-]+)/i) || codeEl.className.match(/([a-z0-9_+-]+)/i);
+          if (cm) lang = cm[1].toLowerCase();
+        }
+
+        var lines = rawText.split('\n');
+        var label = lang.charAt(0).toUpperCase() + lang.slice(1);
+        if (lang === 'bash' || lang === 'sh' || lang === 'shell') label = 'Shell';
+        if (lang === 'yaml' || lang === 'yml') label = 'YAML';
+        if (lang === 'json') label = 'JSON';
+        if (lang === 'plaintext' || lang === 'text') label = 'Plaintext';
+
+        var isFile = false;
+        if (lines.length > 0) {
+          var fileMatch = lines[0].match(/^(?:#|\/\/|--)\s*file:\s*(.+)$/i);
+          if (fileMatch) {
+            label = fileMatch[1].trim();
+            lines.shift();
+            rawText = lines.join('\n');
+            if (label.toLowerCase() !== 'directory layout') {
+              isFile = true;
+            }
+          }
+        }
+
+        var hideGutter = (lang === 'plaintext' || lang === 'text' || label.toLowerCase() === 'directory layout');
+        var box = document.createElement('div');
+        box.className = 'language-' + lang + ' highlighter-rouge' + (hideGutter ? ' hide-gutter' : '');
+
+        var header = document.createElement('div');
+        header.className = 'code-header';
+        var span = document.createElement('span');
+        span.setAttribute('data-label-text', label);
+        if (isFile) span.setAttribute('data-file', 'true');
+        var btn = document.createElement('button');
+        btn.setAttribute('aria-label', 'copy');
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', function() {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(rawText);
+          }
+          btn.textContent = 'Copied!';
+          btn.classList.add('copied');
+          setTimeout(function() {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+          }, 1800);
+        });
+        header.appendChild(span);
+        header.appendChild(btn);
+
+        var highlightDiv = document.createElement('div');
+        highlightDiv.className = 'highlight';
+        var table = document.createElement('table');
+        table.className = 'rouge-table';
+        var tbody = document.createElement('tbody');
+        var tr = document.createElement('tr');
+
+        var tdGutter = document.createElement('td');
+        tdGutter.className = 'rouge-gutter';
+        var preLineno = document.createElement('pre');
+        preLineno.className = 'lineno';
+        var nums = [];
+        for (var i = 1; i <= Math.max(1, lines.length); i++) nums.push(i);
+        preLineno.textContent = nums.join('\n');
+        tdGutter.appendChild(preLineno);
+
+        var tdCode = document.createElement('td');
+        tdCode.className = 'rouge-code';
+        var preCode = document.createElement('pre');
+        preCode.textContent = rawText;
+        tdCode.appendChild(preCode);
+
+        tr.appendChild(tdGutter);
+        tr.appendChild(tdCode);
+        tbody.appendChild(tr);
+        table.appendChild(tbody);
+        highlightDiv.appendChild(table);
+
+        box.appendChild(header);
+        box.appendChild(highlightDiv);
+
+        var targetNode = wrapper || pre;
+        targetNode.parentNode.replaceChild(box, targetNode);
+      });
+
+      // 4. Build right-hand Contents TOC and scroll-spy active link
+      var toc = document.getElementById('chirpy-toc');
       var h2List = Array.prototype.slice.call(article.querySelectorAll('h2'));
+      var tocLinks = [];
       h2List.forEach(function(h2, idx) {
         if (!h2.id) {
           h2.id = 'sec-' + (idx + 1) + '-' + h2.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        }
+        var cleanTitle = h2.textContent.replace(/#$/, '').trim();
+        if (!h2.querySelector('.anchor')) {
+          var anchor = document.createElement('a');
+          anchor.href = '#' + h2.id;
+          anchor.className = 'anchor';
+          anchor.textContent = '#';
+          h2.appendChild(anchor);
         }
         if (toc) {
           var li = document.createElement('li');
           var a = document.createElement('a');
           a.href = '#' + h2.id;
-          a.textContent = h2.textContent;
+          a.className = 'toc-link' + (idx === 0 ? ' is-active-link' : '');
+          a.textContent = cleanTitle;
           li.appendChild(a);
           toc.appendChild(li);
-        }
-
-        if (h2.textContent.trim().toLowerCase().indexOf('key takeaways') !== -1) {
-          var wrapper = document.createElement('div');
-          wrapper.className = 'calm-summary';
-          var next = h2.nextSibling;
-          var nodesToMove = [];
-          while (next) {
-            if (next.nodeType === 1 && (next.tagName === 'H2' || next.tagName === 'HR')) {
-              break;
-            }
-            nodesToMove.push(next);
-            next = next.nextSibling;
-          }
-          if (nodesToMove.length > 0) {
-            h2.parentNode.insertBefore(wrapper, nodesToMove[0]);
-            nodesToMove.forEach(function(n) { wrapper.appendChild(n); });
-          }
+          tocLinks.push({ id: h2.id, el: h2, link: a });
         }
       });
 
-      // 3. Attach ClipboardJS copy buttons to code blocks
-      document.querySelectorAll('article pre').forEach(function(pre) {
-        var btn = document.createElement('button');
-        btn.className = 'copy-btn';
-        btn.textContent = 'Copy';
-        pre.appendChild(btn);
+      window.addEventListener('scroll', function() {
+        var pos = window.scrollY + 120;
+        var activeIdx = 0;
+        for (var i = 0; i < tocLinks.length; i++) {
+          if (tocLinks[i].el.offsetTop <= pos) activeIdx = i;
+        }
+        tocLinks.forEach(function(item, idx) {
+          if (idx === activeIdx) item.link.classList.add('is-active-link');
+          else item.link.classList.remove('is-active-link');
+        });
       });
-
-      if (typeof ClipboardJS !== 'undefined') {
-        var clipboard = new ClipboardJS('.copy-btn', {
-          target: function(trigger) {
-            return trigger.parentElement.querySelector('code') || trigger.parentElement;
-          }
-        });
-        clipboard.on('success', function(e) {
-          e.trigger.textContent = 'Copied!';
-          e.trigger.classList.add('copied');
-          setTimeout(function() {
-            e.trigger.textContent = 'Copy';
-            e.trigger.classList.remove('copied');
-          }, 2000);
-          e.clearSelection();
-        });
-      }
     })();
 
     document.addEventListener('keydown', function(e) {
@@ -503,10 +931,6 @@
       if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
       if (e.key === 't' || e.key === 'T') {
         toggleTheme();
-      } else if (e.key === 'j') {
-        window.scrollBy({ top: 140, behavior: 'smooth' });
-      } else if (e.key === 'k') {
-        window.scrollBy({ top: -140, behavior: 'smooth' });
       }
     });
   </script>

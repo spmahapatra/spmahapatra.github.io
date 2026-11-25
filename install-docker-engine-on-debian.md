@@ -1,7 +1,7 @@
 ---
 date: '2026-08-23'
-description: Install Docker Engine from Docker's official Debian repository, verify
-  the daemon, and configure non-root access safely.
+description: Install Docker Engine on Debian from Docker's official signed APT repository,
+  verify the daemon, and configure non-root socket access safely.
 platforms:
 - devto
 - medium
@@ -12,6 +12,15 @@ published_at:
   medium: null
 slug: install-docker-engine-on-debian
 status: published
+section: 7
+topic: containers
+prev_slug: install-debian-wsl2-windows-11
+next_slug: part-1-dockerising-and-standardising-compose
+tested_on:
+- Debian 12 (Bookworm)
+- Docker Engine 26.1
+- Compose v2.27
+cover_image: https://spmahapatra.github.io/recordings/install-docker-engine-on-debian/architecture.svg
 tags:
 - docker
 - debian
@@ -22,88 +31,70 @@ title: Install Docker Engine on Debian
 
 # Install Docker Engine on Debian
 
-Docker Engine provides the daemon, CLI, and runtime needed to build and run containers on Debian. This guide installs Docker Engine from Docker's official APT repository, verifies the service with a test container, and configures the current user to run Docker without `sudo`.
+Installing Docker on Debian by running `apt install docker.io` or mixing old `.list` repository files with modern `.sources` manifests causes two painful operational failures: outdated distribution runtime packages that lack the Go-based `docker compose` V2 plugin, and APT `Conflicting values set for option Signed-By` errors that halt system upgrades. Even when the daemon starts, skipping non-root socket verification causes downstream tools like Minikube to fail with misleading driver errors because the current login shell cannot open `/var/run/docker.sock`.
 
-The repository method is preferable for a long-lived Debian instance because APT can receive Docker updates through the normal package workflow. Docker currently documents Debian 13 (Trixie), Debian 12 (Bookworm), and Debian 11 (Bullseye), with packages for amd64, armhf, arm64, and ppc64el. Package names and supported releases can change, so the official [Docker Debian installation page](https://docs.docker.com/engine/install/debian/) remains the authority when this article is updated.
+This blueprint removes conflicting distribution packages, configures Docker's official deb822 signed APT repository (`/etc/apt/sources.list.d/docker.sources`), installs `docker-ce` alongside `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`, and verifies non-root daemon execution on Debian 11, 12, and 13.
 
-## Key Takeaways
+> [!INFO]
+> **What This Blueprint Delivers:**
+> - **Clean deb822 Signed APT Source:** Uses `/etc/apt/keyrings/docker.asc` and `/etc/apt/sources.list.d/docker.sources` without conflicting legacy `.list` files.
+> - **Complete Official Runtime Stack:** Installs `docker-ce`, `docker-ce-cli`, `containerd.io`, Buildx, and Compose V2 from a single verified release stream.
+> - **Verified Non-Root Socket Access:** Validates `/var/run/docker.sock` group permissions and container execution in the exact shell used by downstream tools.
 
-- Install Docker Engine from Docker's signed APT repository rather than mixing distribution packages with Docker packages.
-- Test the daemon with `docker run hello-world` before configuring applications or Kubernetes tools.
-- Membership in the `docker` group grants root-equivalent access to the host. Add only trusted users, or keep using `sudo`.
+## Architecture Overview
 
-## What Is Docker Engine?
+Installing Docker Engine on Debian separates package trust from runtime execution. APT verifies packages against `/etc/apt/keyrings/docker.asc` before installing the `dockerd` and `containerd` systemd services, while the unprivileged user CLI communicates with the daemon across `/var/run/docker.sock`:
 
-Docker Engine is the host-side service that builds images, stores container data, creates networks, and starts containers. The Docker CLI sends requests to that service through its local socket. Installing the CLI alone does not provide a working container runtime.
+![Install Docker Engine on Debian Architecture Overview](https://spmahapatra.github.io/recordings/install-docker-engine-on-debian/architecture.svg)
 
-The installation has three separate concerns: repository trust, package installation, and daemon access. The repository's signing key lets APT verify Docker packages. The packages install the daemon and related plugins. The Unix socket controls which users can ask that daemon to perform privileged operations.
+## Project Structure & Prerequisites
 
-## The Mental Model
+- **Debian 11 (Bullseye), 12 (Bookworm), or 13 (Trixie):** 64-bit (`amd64` or `arm64`) with `systemd` active as PID 1.
+- **Sudo Privileges:** A non-root administrative account with `sudo` access.
+- **Outbound HTTPS (443):** Access to Debian mirrors and `https://download.docker.com/linux/debian`.
+- **Clean Firewall Policy:** Awareness that published container ports (`-p`) program `iptables-nft` rules directly.
 
-Treat the setup as a chain of checks:
-
-1. **Operating system:** confirm the Debian release and architecture are supported.
-2. **Conflicting packages:** remove unofficial packages that can provide overlapping commands or incompatible runtime dependencies.
-3. **APT trust:** install Docker's keyring and repository definition with readable, explicit permissions.
-4. **Engine service:** install the daemon, CLI, containerd, Buildx, and Compose plugins, then confirm the service is active.
-5. **User access:** decide whether commands should use `sudo`, Docker-group membership, or rootless mode.
-6. **Network policy:** review firewall behavior before publishing container ports.
-
-A successful `docker version` proves that the CLI can reach the daemon. A successful `docker run hello-world` proves that the daemon can pull an image, create a container, start it, and report its output. Run both checks; they catch different failures.
-
-## The Incident
-
-On a new Debian instance, I once treated Docker installation as a single package command and moved directly to a Kubernetes setup. The package installation completed, but the normal user could not access the Docker socket, so Minikube reported a driver failure that looked like a Kubernetes problem. I spent time checking cluster settings before checking `docker run`. The real fix was a new login session after changing group membership. The lesson was simple: validate Docker as the exact user and shell that will run the next tool.
-
-## Prerequisites
-
-- Debian 11, 12, or 13 on a supported architecture
-- A non-root user with `sudo` access
-- Outbound HTTPS access to Debian mirrors and `download.docker.com`
-- A terminal session on the target Debian instance
-- A firewall plan if containers will publish ports outside the host
-
-Before installing, identify the release and architecture:
-
-```bash
-. /etc/os-release
-printf 'Debian release: %s\n' "$VERSION_ID"
-printf 'Codename: %s\n' "$VERSION_CODENAME"
-dpkg --print-architecture
+```plaintext
+# file: Directory Layout
+/
+├── etc/
+│   ├── apt/
+│   │   ├── keyrings/
+│   │   │   └── docker.asc             # Official Docker GPG signing key (0644)
+│   │   └── sources.list.d/
+│   │       └── docker.sources         # deb822 repository manifest locked to codename
+│   └── docker/
+│       └── daemon.json                # Optional log-driver & storage configuration
+└── var/
+    ├── lib/docker/                    # Persistent image layers, volumes & containers
+    └── run/docker.sock                # root:docker (0660) Unix domain control socket
 ```
 
-## Walkthrough
+## Purging Unofficial Packages & Legacy APT Lists (`apt remove`)
 
-### 1. Remove conflicting Docker packages
-
-Debian may provide packages such as `docker.io`, while other tools may install `containerd` or `runc` separately. Docker's official packages bundle compatible runtime dependencies. Remove conflicting packages if they are present:
+Debian's default repositories ship older `docker.io`, `podman-docker`, and standalone `containerd` packages that clash with Docker's official runtime bundle. Before configuring the repository, inspect your Debian release codename, purge any unofficial packages, and delete stale `/etc/apt/sources.list.d/docker.list` files so APT never encounters duplicate `Signed-By` definitions:
 
 ```bash
-sudo apt remove -y docker.io docker-compose docker-doc docker-buildx podman-docker containerd runc
-```
+. /etc/os-release && echo "$VERSION_CODENAME ($(dpkg --print-architecture))"  # Expected: bookworm (amd64)
 
-APT may report that some packages are not installed. This command does not remove Docker's stored images, containers, volumes, or networks. Existing data may still be present under `/var/lib/docker` and `/var/lib/containerd`.
-
-### 2. Configure Docker's signed APT repository
-
-Install the keyring directory and Docker's official signing key, then create a deb822 repository definition. The architecture expression prevents APT from selecting packages for a different architecture.
-
-If Docker was previously configured with an older `.list` file, remove that duplicate source before adding the `.sources` definition below. Keeping two entries for the same repository with different signing keys makes APT stop with a `Conflicting values set for option Signed-By` error. This removes repository configuration only; it does not remove Docker packages or container data.
-
-```bash
+sudo apt-get remove -y docker.io docker-compose docker-doc docker-buildx podman-docker containerd runc || true
 sudo rm -f /etc/apt/sources.list.d/docker.list
 ```
 
-```bash
-sudo apt update
-sudo apt install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/debian/gpg \
-  -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-```
+> [!TIP]
+> **Data Preservation:** Running `apt-get remove` removes conflicting binaries only; it leaves any existing images, containers, and volumes under `/var/lib/docker` intact.
+
+## Configuring the Signed deb822 Repository (`docker.sources`)
+
+Create `/etc/apt/keyrings` with `0755` permissions, download Docker's official ASCII-armored GPG key to `/etc/apt/keyrings/docker.asc`, and write a deb822 `/etc/apt/sources.list.d/docker.sources` manifest pinned to your exact Debian codename and CPU architecture:
 
 ```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
 sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
 Types: deb
 URIs: https://download.docker.com/linux/debian
@@ -112,182 +103,77 @@ Components: stable
 Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
+
+sudo apt-get update
 ```
 
-Refresh package metadata and confirm Docker packages are visible:
+Inspect `/etc/apt/sources.list.d/docker.sources` and confirm `apt-cache policy docker-ce` resolves packages from `download.docker.com`:
 
-```bash
-sudo apt update
-apt list --all-versions docker-ce 2>/dev/null | sed -n '1,5p'
+```deb822
+# file: /etc/apt/sources.list.d/docker.sources
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: bookworm
+Components: stable
+Architectures: amd64
+Signed-By: /etc/apt/keyrings/docker.asc
 ```
 
-On Debian testing or a derivative distribution, `VERSION_CODENAME` may not match a Docker repository suite. Check the official documentation before substituting the corresponding Debian codename.
-
-### 3. Install Docker Engine and its standard plugins
-
-Install the engine, command-line client, containerd, Buildx, and Compose plugin:
-
 ```bash
-sudo apt install -y docker-ce docker-ce-cli containerd.io \
-  docker-buildx-plugin docker-compose-plugin
+apt-cache policy docker-ce
 ```
 
-Check that the service is active and that the client can reach it:
-
-```bash
-sudo systemctl is-active docker
-sudo docker version
-sudo docker info
+```plaintext
+docker-ce:
+  Installed: (none)
+  Candidate: 5:26.1.4-1~debian.12~bookworm
+  Version table:
+     5:26.1.4-1~debian.12~bookworm 500
+        500 https://download.docker.com/linux/debian bookworm/stable amd64 Packages
 ```
 
-On a normal Debian installation, Docker starts with the service installation. If it is inactive, start it and inspect the service status:
+## Installing Docker Engine, Buildx & Compose V2 (`docker-ce`)
+
+Install the complete official runtime bundle (`docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`), enable the `docker.service` systemd unit, and verify the daemon and CLI plugins:
 
 ```bash
+sudo apt-get install -y \
+  docker-ce \
+  docker-ce-cli \
+  containerd.io \
+  docker-buildx-plugin \
+  docker-compose-plugin
+
 sudo systemctl enable --now docker
-sudo systemctl status docker --no-pager
+sudo systemctl is-active docker          # Expected: active
+sudo docker run --rm hello-world         # Expected: Hello from Docker!
+docker compose version                   # Expected: Docker Compose version v2.27.1
+docker buildx version                    # Expected: github.com/docker/buildx v0.14.1
 ```
 
-### 4. Verify the installation with a test container
+## Granting Non-Root Socket Access (`/var/run/docker.sock`)
 
-Run Docker's small verification image:
-
-```bash
-sudo docker run --rm hello-world
-```
-
-The command downloads the image if necessary, creates a temporary container, prints a confirmation message, and removes the container because of `--rm`. A failure here should be resolved before installing Minikube, Compose applications, or other Docker-dependent tooling.
-
-### 5. Configure non-root Docker access deliberately
-
-The simplest access model is to prefix Docker commands with `sudo`. If the instance is trusted and the workflow requires normal-user commands, add the current user to the Docker group:
+By default, `/var/run/docker.sock` is owned by `root:docker` with `0660` permissions. To run `docker`, `docker compose`, and `minikube --driver=docker` without prefixing every command with `sudo`, add your administrative user to the `docker` group, activate the new group membership, and verify unprivileged container execution:
 
 ```bash
 sudo usermod -aG docker "$USER"
+newgrp docker
+
+ls -l /var/run/docker.sock               # Expected: srw-rw---- 1 root docker
+id -nG                                   # Expected: localadmin sudo docker
+docker run --rm hello-world              # Expected: Hello from Docker! (without sudo)
 ```
 
-Start a new login session so the shell receives the new group membership. Then verify the exact user path:
+> [!WARNING]
+> **Caveats & Impact:** Membership in the `docker` group grants root-equivalent privileges on the host because any user who can talk to `/var/run/docker.sock` can bind-mount `/` into a privileged container. Add only trusted administrators to `docker`, and always start a fresh login shell (or run `newgrp docker`) after `usermod` before launching Minikube or CI scripts.
 
-```bash
-id -nG
-docker version
-docker run --rm hello-world
-```
+## What This Setup Does Not Do & Troubleshooting
 
-Do not use `sudo docker` as a substitute for refreshing the session when testing group access. The root and non-root clients can use different configuration files and caches, which makes troubleshooting harder.
+Installing Docker Engine does not configure automatic container log rotation (`max-size` in `/etc/docker/daemon.json`), nor does it prevent containers published with `-p 8080:8080` from bypassing `ufw` host firewall rules by inserting directly into `iptables`. Keep these common operational errors and fixes in mind:
 
-The Docker group is not equivalent to an ordinary application group. A user who can control the Docker daemon can generally gain root-level access to the host. Use the group only for trusted administrators, or investigate Docker's documented rootless mode when that privilege boundary matters.
-
-### 6. Verify Compose and Buildx
-
-The installation includes the modern Compose and Buildx plugins. Confirm both are available:
-
-```bash
-docker compose version
-docker buildx version
-```
-
-These are plugin commands, so `docker-compose` and an old standalone `docker-buildx` command are not required for the documented workflow. Existing scripts may need updating if they depend on legacy command names.
-
-## Working with Docker Daily
-
-Useful commands for a new instance include:
-
-| Command | What it does |
-|---|---|
-| `docker ps` | List running containers |
-| `docker ps -a` | List running and stopped containers |
-| `docker images` | List locally stored images |
-| `docker logs <container>` | Read container output |
-| `docker exec -it <container> sh` | Open a shell in a running container |
-| `docker inspect <container>` | Show low-level container configuration |
-| `docker system df` | Show Docker disk usage |
-| `docker compose up -d` | Start a Compose application in the background |
-
-Keep the daemon healthy with `systemctl is-active docker` and monitor disk usage. Images, writable layers, build cache, and container logs can fill a small instance even when few containers are running.
-
-## Debugging & Common Pitfalls
-
-### `docker: permission denied`
-
-The daemon may be healthy while the current user lacks permission to access `/var/run/docker.sock`. Check the service, socket ownership, and active groups:
-
-```bash
-sudo systemctl is-active docker
-ls -l /var/run/docker.sock
-id -nG
-```
-
-Use `sudo docker ...`, or start a new login session after `usermod -aG docker "$USER"`. Avoid changing the socket to world-writable permissions.
-
-### APT cannot find `docker-ce`
-
-The Docker repository may be missing, the codename may be wrong, or `sudo apt update` may have failed. Inspect the source definition and run the update again:
-
-```bash
-cat /etc/apt/sources.list.d/docker.sources
-sudo apt update
-```
-
-On supported Debian releases, the `Suites` value should correspond to the Debian codename. Do not blindly use `stable` as the suite; `stable` belongs in `Components`.
-
-### Docker service fails to start
-
-Read the service log before reinstalling packages:
-
-```bash
-sudo systemctl status docker --no-pager
-sudo journalctl -u docker.service -n 100 --no-pager
-```
-
-Look for storage-driver, dependency, disk, or network errors. A previous installation may have left incompatible runtime packages or configuration under `/etc/docker`.
-
-### Published ports bypass expected firewall rules
-
-Docker warns that ports published with `-p` can bypass rules managed by `ufw` or firewalld. Docker is compatible with `iptables-nft` and `iptables-legacy`; rules created only with unsupported native nftables workflows may not behave as expected. Review Docker's firewall documentation and place filtering rules in the `DOCKER-USER` chain where appropriate before exposing services.
-
-### The server runs out of disk
-
-Inspect Docker's usage before deleting anything:
-
-```bash
-docker system df
-sudo du -sh /var/lib/docker /var/lib/containerd
-```
-
-Remove only resources you understand. `docker system prune` can remove stopped containers, unused networks, dangling images, and build cache; adding `--volumes` can remove unused data volumes and should be treated as a destructive operation.
-
-## FAQ
-
-### Should I install `docker.io` or `docker-ce` on Debian?
-
-Use Docker's official packages when you want Docker's documented Engine release stream: `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, and `docker-compose-plugin`. Do not mix the distribution's `docker.io` package with those packages without checking the resulting dependency and upgrade behavior.
-
-### Can I run Docker without `sudo`?
-
-Yes, but adding a user to the Docker group grants root-equivalent control over the host. A new login session is required after changing membership. Keeping `sudo` is simpler for a tightly controlled administrative workflow; rootless mode is another option when its limitations fit the workload.
-
-### Does installing Docker automatically start the daemon?
-
-Docker's Debian package normally starts the service. Verify with `sudo systemctl is-active docker`, and use `sudo systemctl enable --now docker` if the service is inactive or is not enabled for boot.
-
-### Is the convenience script better than the APT repository?
-
-The convenience script is useful for disposable development environments and automation experiments, but it provides less control over repository setup and package choices. The APT repository is the better default for a Debian instance that will be maintained over time.
-
-### How do I completely uninstall Docker?
-
-First remove the packages:
-
-```bash
-sudo apt purge -y docker-ce docker-ce-cli containerd.io \
-  docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras
-```
-
-Then remove the repository definition and key if they are no longer needed:
-
-```bash
-sudo rm -f /etc/apt/sources.list.d/docker.sources
-sudo rm -f /etc/apt/keyrings/docker.asc
-```
-
-Images, containers, volumes, and custom configuration are not automatically removed by package removal. Delete `/var/lib/docker` and `/var/lib/containerd` only after confirming that all required data has been backed up or discarded.
+| Symptom / Error | Root Cause | Fix & Verify |
+|---|---|---|
+| `permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock` | Active shell session has not loaded the new `docker` group after `usermod -aG docker "$USER"` | Log out and back in (or run `newgrp docker`), verify `id -nG` lists `docker`, and re-run `docker version` |
+| `E: Conflicting values set for option Signed-By regarding source https://download.docker.com/linux/debian` | Both a legacy `/etc/apt/sources.list.d/docker.list` and new `docker.sources` exist with different key paths | Run `sudo rm -f /etc/apt/sources.list.d/docker.list`, verify only `docker.sources` remains, and run `sudo apt-get update` |
+| `E: Unable to locate package docker-ce` on Debian derivative or testing release | `VERSION_CODENAME` in `/etc/os-release` does not match an official Docker Debian suite (`bullseye`, `bookworm`, `trixie`) | Edit `Suites:` in `/etc/apt/sources.list.d/docker.sources` to the matching upstream Debian codename and run `sudo apt-get update` |
+| Port published via `-p 8080:8080` is reachable from external LAN despite `ufw deny 8080` | Docker Engine programs `iptables` NAT chains directly ahead of `ufw` input chains | Bind local services explicitly to loopback (`-p 127.0.0.1:8080:8080`) or add filtering rules to the `DOCKER-USER` iptables chain |
